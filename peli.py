@@ -48,10 +48,12 @@ class Peli:
         """
         print("Tervetuloa UNO-korttipeliin.")
         print()
+
         while True:
             # määritetään kierroksen kierroksen aloittava pelaaja
             if self.kierros > 1:
                 self.maarita_aloittava_pelaaja()
+
             self.kierros_pelattu = False
             self.nostopakka.luo_pakka()
             self.nostopakka.sekoita()
@@ -59,6 +61,7 @@ class Peli:
             self.nostopakka.kaanna_pakka()
             self.aloituskortti_poistopakkaan()
             self.pelaa_kierros()
+
             if self._tarkista_voittopisteet():
                 break
 
@@ -74,10 +77,12 @@ class Peli:
 
     def get_seuraava_pelaaja(self):
         if self.pelisuunta == 1:
+
             if self.vuorossa < self.pelaajien_lkm - 1:
                 return self.pelaajat[self.vuorossa + 1]
             else:
                 return self.pelaajat[0]
+
         else:
             if self.vuorossa == 0:
                 return self.pelaajat[self.pelaajien_lkm - 1]
@@ -87,10 +92,12 @@ class Peli:
     def seuraava_pelaaja(self):
         """Metodia käytetään vuoron vaihtamiseen."""
         if self.pelisuunta == 1:
+
             if self.vuorossa == self.pelaajien_lkm - 1:
                 self.vuorossa = 0
             else:
                 self.vuorossa += 1
+
         else:
             if self.vuorossa == 0:
                 self.vuorossa = self.pelaajien_lkm - 1
@@ -131,15 +138,19 @@ class Peli:
         print(f"{self.kierros:>2}. kierros")
         print("=" * 20)
         self.aloittaja = self.vuorossa
+
         while not self.kierros_pelattu:
             pelaaja = self.get_vuorossaoleva_pelaaja()
             self.toimintakortin_pelannut_pelaaja = None
             self.pelaa_vuoro()
+
             if self._tarkista_voitto():
                 self._laske_voittopisteet()
-                print(f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
+                print(
+                    f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
                 self.tuhoa_pelaajien_kadet()
                 self.kierros_pelattu = True
+
             self.seuraava_pelaaja()
         input()
 
@@ -151,14 +162,20 @@ class Peli:
             -passata
         """
         self.alusta_vuoro()
+        print("Pelaajan käsi:")
+        kadessa_olevat_kortit = self.tulosta_pelaajan_kortit()
+
         while not self.vuoro_pelattu:
             syote = self._pelaajan_syote()
+
             if syote == "N":
                 self._nosta_kortti()
             elif syote == "P":
                 self._passaa()
             else:
-                self._pelaa_kortti(syote)
+                kortti = kadessa_olevat_kortit[syote]
+                self._pelaa_kortti(kortti)
+
         print()
 
     def alusta_vuoro(self):
@@ -173,14 +190,16 @@ class Peli:
         self.kortti_nostettu = False
 
     def _pelaajan_syote(self):
-        print("Pelaajan käsi:")
-        kadessa_olevat_kortit = self.tulosta_pelaajan_kortit()
-        syote = input(
-            "Syötä joko pelattava kortti, nosta (N) uusi kortti tai passaa (P): ")
-        if syote == "N" or syote == "P":
-            return syote
-        if syote in kadessa_olevat_kortit:
-            return kadessa_olevat_kortit[syote]
+        syote = ""
+        mahdolliset_syotteet = [str(x) for x in range(
+            1, len(self.get_vuorossaoleva_pelaaja().get_kasi()) + 1)] + ["N", "P"]
+
+        while syote not in mahdolliset_syotteet:
+            syote = input(
+                "Syötä joko pelattava kortti, nosta (N) uusi kortti tai passaa (P): ")
+            syote = syote.capitalize()
+
+        return syote
 
     def tulosta_pelaajan_kortit(self):
         """Tulostaa pelaajan kortit ja tallentaa ne dictionaryyn kortin
@@ -189,8 +208,10 @@ class Peli:
         pelaaja = self.get_vuorossaoleva_pelaaja()
         pelaaja.tulosta_kasi()
         pelaajan_kasi = {}
+
         for i, kortti in enumerate(pelaaja.get_kasi(), start=1):
             pelaajan_kasi[str(i)] = kortti
+
         return pelaajan_kasi
 
     def _nosta_kortti(self):
@@ -208,14 +229,18 @@ class Peli:
         """
         pelaaja = self.get_vuorossaoleva_pelaaja()
         kasi = pelaaja.get_kasi()
+
         for kortti in kasi:
+
             if self._hyvaksyta_pelattu_kortti(kortti, nosto=True):
                 print((f"Et voi nostaa uutta korttia, koska kädessäsi oleva "
                        f"kortti {kortti} on pelattavissa."))
                 return False
+
             if self.kortti_nostettu:
                 print("Olet jo nostanut kortin!")
                 return False
+
         self.kortti_nostettu = True
         return True
 
@@ -230,12 +255,17 @@ class Peli:
         """
         pelaaja = self.get_vuorossaoleva_pelaaja()
         if self._hyvaksyta_pelattu_kortti(kortti):
+
             if self.jokerivari != Config.ERIKOISVARI:
                 self.jokerivari = Config.ERIKOISVARI
+
             if kortti.toiminta:
+
                 if kortti.arvo != 11:
                     self.toimintakortin_pelannut_pelaaja = pelaaja
+
                 self._kasittele_toimintakortti(kortti)
+
             pelaaja.pelaa_vuoro(kortti)
             self.poistopakka.lisaa_kortti(kortti)
             self.vuoro_pelattu = True
@@ -245,13 +275,16 @@ class Peli:
         """
         return True  # TODO
         verrattava_kortti = self.poistopakka.get_viimeinen_kortti()
+
         if pelattu_kortti.vari == verrattava_kortti.vari or \
                 pelattu_kortti.arvo == verrattava_kortti.arvo or \
                 pelattu_kortti.vari == Config.ERIKOISVARI or \
                 pelattu_kortti.vari == self.jokerivari:
             return True
+
         if not nosto:
             print("Kortti ei kelpaa!")
+
         return False
 
     def _kasittele_toimintakortti(self, pelattu_kortti):
@@ -269,8 +302,10 @@ class Peli:
         # nosta 2
         elif pelattu_kortti.arvo == 12:
             seuraava_pelaaja = self.get_seuraava_pelaaja()
+
             for i in range(0, 2):
                 seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
+
             self.seuraava_pelaaja()
 
         elif pelattu_kortti.arvo == 13 or pelattu_kortti.arvo == 14:
@@ -279,15 +314,22 @@ class Peli:
     def _kasittele_jokerikortti(self, pelattu_kortti):
         varit = self.nostopakka.get_varit()
         varivalinta = {str(i): vari for i, vari in enumerate(varit, start=1)}
+
         for i, vari in varivalinta.items():
             print(f"    {i:>2} - {vari}")
-        syote = input("Mitä väriä kysytään? ")
+
+        syote = ""
+        while syote not in varivalinta:
+            syote = input("Mitä väriä kysytään? ")
+
         self.jokerivari = varivalinta[syote]
 
         if pelattu_kortti.arvo == 14:
             seuraava_pelaaja = self.get_seuraava_pelaaja()
+
             for _ in range(0, 4):
                 seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
+
             self.seuraava_pelaaja()
 
     def _vaihda_pelisuunta(self):
@@ -300,6 +342,7 @@ class Peli:
             pelaaja = self.get_vuorossaoleva_pelaaja()
         else:
             pelaaja = self.toimintakortin_pelannut_pelaaja
+
         if len(pelaaja.get_kasi()) == 0:
             pelaaja.voittaa()
             return True
@@ -316,11 +359,14 @@ class Peli:
         """Tarkistaa, onko jokin pelaajista saavuttanut voittoon
         tarvittavat pisteet."""
         for pelaaja in self.pelaajat:
+
             if pelaaja.get_pisteet() >= self.voittopisteet:
                 print(f"Pelin voitti {pelaaja.get_nimi()}.")
                 print(f"Kierroksia pelattiin yhteensä {self.kierros}.")
                 print("Pistetilanne:")
+
                 for pelaaja2 in self.pelaajat:
                     print(f"{pelaaja2.get_nimi()} - {pelaaja2.get_pisteet()}")
+
                 return True
             return False
