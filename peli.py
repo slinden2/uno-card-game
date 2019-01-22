@@ -30,10 +30,16 @@ class Peli:
         self.toimintakortin_pelannut_pelaaja = None
 
     @classmethod
-    def palauta_perus_peli(cls):
+    def palauta_peruspeli(cls):
         """3 pelaajaa ja voittoon varvittavat pisteet 500
         """
-        return cls(2, 10)
+        return cls(3, 500)
+
+    @classmethod
+    def palauta_testipeli(cls):
+        """Testaamiseen tarkoitettu pelinluontimetodi.
+        """
+        return cls(2, 50)
 
     def luo_pelaajat(self):
         for pelaajanumero in range(1, self.pelaajien_lkm + 1):
