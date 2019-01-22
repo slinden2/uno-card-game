@@ -1,3 +1,4 @@
+import tkinter
 from peli import Peli
 
 
