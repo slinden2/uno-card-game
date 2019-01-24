@@ -41,6 +41,10 @@ class Peli:
         """
         return cls(2, 50)
 
+    def kaynnista(self):
+        self.luo_pelaajat()
+        self.pelaa_peli()
+
     def luo_pelaajat(self):
         for pelaajanumero in range(1, self.pelaajien_lkm + 1):
             nimi = input(f"Syötä pelaajan {pelaajanumero} nimi: ")
