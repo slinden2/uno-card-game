@@ -2,4 +2,5 @@ class Config:
 
     ERIKOISVARI = 'NA'
     TAUSTAVARI = 'green'
-    PELAAJA_LKM = 3
+    PELAAJA_LKM = 2
+    VOITTOPISTEET = 500

@@ -14,29 +14,33 @@ class UnoCardGame(tk.Tk):
 
         tk.Tk.wm_title(self, "UNO Card Game")
 
-        paaikkuna = tk.Frame(self)
-        paaikkuna.pack(side="top", fill="both", expand=True)
+        self.paaikkuna = tk.Frame(self)
+        self.paaikkuna.pack(side="top", fill="both", expand=True)
 
-        paaikkuna.rowconfigure(0, weight=1)
-        paaikkuna.columnconfigure(0, weight=1)
+        self.paaikkuna.rowconfigure(0, weight=1)
+        self.paaikkuna.columnconfigure(0, weight=1)
 
         self.framet = {}
-
-        for F in (Aloitusframe, Peliframe, Asetusframe):
-            frame = F(paaikkuna, self)
-            self.framet[F] = frame
-            frame.grid(row=0, column=0, sticky="nsew")
-
+        self.luo_framet()
         self.nayta_frame(Aloitusframe)
 
-        self.peli = self.luo_peli()
+        self.peli = Peli()
+
+    def luo_framet(self):
+        self.framet = {}
+        for F in (Aloitusframe, Peliframe, Asetusframe):
+            frame = F(self.paaikkuna, self)
+            self.framet[F] = frame
+            frame.grid(row=0, column=0, sticky="nsew")
 
     def nayta_frame(self, frame):
         frame1 = self.framet[frame]
         frame1.tkraise()
 
-    def luo_peli(self):
-        return Peli.palauta_testipeli()
+    def paivita_framet(self):
+        for frame in self.framet:
+            self.framet[frame].destroy()
+        self.luo_framet()
 
 
 class Aloitusframe(tk.Frame):
@@ -70,16 +74,51 @@ class Asetusframe(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
 
-        label = ttk.Label(self, text="Asetusframe")
-        label.grid(row=0, column=0, sticky="nsew")
+        self.controller = controller
 
-        nappi = ttk.Button(self, text="Aloitusframeen",
-                           command=lambda: controller.nayta_frame(Aloitusframe))
-        nappi.grid(row=1, column=0, sticky="nsew")
+        label1 = ttk.Label(self, text="Asetukset")
+        label1.grid(row=0, column=0, columnspan=2, sticky="nsew")
+
+        label1 = ttk.Label(self, text="Pelaajamäärä")
+        label1.grid(row=1, column=0, sticky="nsew")
+
+        self.pelaaja_lkm = tk.IntVar()
+        self.pelaaja_lkm.set(Config.PELAAJA_LKM)
+        entry_pelaaja_maara = tk.Spinbox(
+            self, increment=1, from_=2, to=4, state="readonly", wrap=True, textvariable=self.pelaaja_lkm)
+        entry_pelaaja_maara.grid(row=1, column=1, sticky="ew")
+
+        label1 = ttk.Label(self, text="Voittopisteet")
+        label1.grid(row=2, column=0, sticky="nsew")
+
+        self.voittopisteet = tk.IntVar()
+        self.voittopisteet.set(Config.VOITTOPISTEET)
+        entry_voittopisteet = tk.Spinbox(
+            self, increment=1, from_=20, to=500, wrap=True, textvariable=self.voittopisteet)
+        entry_voittopisteet.grid(row=2, column=1, sticky="ew")
+
+        nappi1 = ttk.Button(self, text="Peruuta",
+                            command=self.peruuta_muutokset)
+        nappi1.grid(row=3, column=0, sticky="nsew")
+
+        nappi2 = ttk.Button(self, text="OK",
+                            command=self.tallenna_asetukset)
+        nappi2.grid(row=3, column=1, sticky="nsew")
 
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
+
+    def peruuta_muutokset(self):
+        self.pelaaja_lkm.set(Config.PELAAJA_LKM)
+        self.voittopisteet.set(Config.VOITTOPISTEET)
+        self.controller.nayta_frame(Aloitusframe)
+
+    def tallenna_asetukset(self):
+        Config.PELAAJA_LKM = self.pelaaja_lkm.get()
+        Config.VOITTOPISTEET = self.voittopisteet.get()
+        self.controller.paivita_framet()
+        self.controller.nayta_frame(Aloitusframe)
 
 
 class Peliframe(tk.Frame):
@@ -144,13 +183,11 @@ class Korttiframe(tk.Frame):
             label_pelaaja.grid(row=i, column=0, sticky="nsew")
 
             entry_pelaaja = ttk.Entry(self, textvariable=pelaaja,
-                                        validate='key', validatecommand=vcmd)
+                                      validate='key', validatecommand=vcmd)
             entry_pelaaja.grid(row=i, column=1, sticky="nsew")
 
             pelaaja_widgetit.append((label_pelaaja, entry_pelaaja))
 
-        # nappi = ttk.Button(self, text="Pelaa",
-        #                    command=lambda: self.parent.controller.peli.kaynnista())
         nappi = ttk.Button(self, text="Pelaa",
                            command=lambda: self.kaynnista(pelaaja_widgetit))
         nappi.grid(row=10, column=1, sticky="nsew")
@@ -172,6 +209,9 @@ class Korttiframe(tk.Frame):
         return True
 
     def tarkista_tyhjat_nimikentat(self, pelaajat):
+        """Jos jokin pelaajista jää nimeättä, tämä metodi
+        täyttää nimikentän.
+        """
         laskuri = 1
         for _, pelaaja in pelaajat:
             if len(pelaaja.get()) < 1:
@@ -180,6 +220,8 @@ class Korttiframe(tk.Frame):
 
     def kaynnista(self, pelaajat):
         self.tarkista_tyhjat_nimikentat(pelaajat)
-        for _, pelaaja in pelaajat:
-            print(pelaaja.get())
 
+        for _, pelaaja in pelaajat:
+            self.parent.controller.peli.luo_pelaaja(pelaaja.get())
+
+        self.parent.controller.peli.pelaa_peli()

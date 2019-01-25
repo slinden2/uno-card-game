@@ -13,9 +13,7 @@ class Peli:
     :param: voittopisteet: Voittoon tarvittavien pisteiden määrä
     """
 
-    def __init__(self, pelaajien_lkm, voittopisteet):
-        self.pelaajien_lkm = pelaajien_lkm
-        self.voittopisteet = voittopisteet
+    def __init__(self):
         self.pelaajat = []
         self.nostopakka = Pakka()
         self.poistopakka = Pakka()
@@ -45,10 +43,8 @@ class Peli:
         self.luo_pelaajat()
         self.pelaa_peli()
 
-    def luo_pelaajat(self):
-        for pelaajanumero in range(1, self.pelaajien_lkm + 1):
-            nimi = input(f"Syötä pelaajan {pelaajanumero} nimi: ")
-            self.pelaajat.append(Pelaaja(nimi))
+    def luo_pelaaja(self, nimi):
+        self.pelaajat.append(Pelaaja(nimi))
         print()
 
     def pelaa_peli(self):
@@ -58,6 +54,9 @@ class Peli:
         """
         print("Tervetuloa UNO-korttipeliin.")
         print()
+
+        self.pelaajien_lkm = len(self.pelaajat)
+        self.voittopisteet = Config.VOITTOPISTEET
 
         while True:
             # määritetään kierroksen kierroksen aloittava pelaaja
