@@ -28,12 +28,15 @@ class UnoCardGame(tk.Tk):
 
     def luo_framet(self):
         self.framet = {}
-        for F in (Aloitusframe, Peliframe, Asetusframe):
+        for F in (Aloitusframe, Pelaajaframe, Asetusframe, Peliframe):
             frame = F(self.paaikkuna, self)
             self.framet[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
     def nayta_frame(self, frame):
+        if frame in (Pelaajaframe, Peliframe):
+            # pelaaja- ja peliframet taytyy paivittaa ennen nayttamista
+            self.paivita_frame(frame)
         frame1 = self.framet[frame]
         frame1.tkraise()
 
@@ -42,14 +45,11 @@ class UnoCardGame(tk.Tk):
             self.framet[frame].destroy()
         self.luo_framet()
 
-    # def paivita_frame(self):
-    #     self.framet[Peliframe].destroy()
-    #     del self.framet[Peliframe]
-
-    #     frame = Peliframe(self.paaikkuna, self)
-    #     self.framet[Peliframe] = frame
-    #     frame.grid(row=0, column=0, sticky="nsew")
-
+    def paivita_frame(self, frame):
+        self.framet[frame].destroy()
+        frame1 = frame(self.paaikkuna, self)
+        self.framet[frame] = frame1
+        frame1.grid(row=0, column=0, sticky="nsew")
 
 class Aloitusframe(tk.Frame):
 
@@ -59,8 +59,8 @@ class Aloitusframe(tk.Frame):
         label = ttk.Label(self, text="UNO Card Game")
         label.grid(row=0, column=0, columnspan=3, sticky="nsew")
 
-        nappi = ttk.Button(self, text="Peliframeen",
-                           command=lambda: controller.nayta_frame(Peliframe))
+        nappi = ttk.Button(self, text="Pelaajaframeen",
+                           command=lambda: controller.nayta_frame(Pelaajaframe))
         nappi.grid(row=1, column=0, sticky="nsew")
 
         nappi2 = ttk.Button(self, text="Asetukset",
@@ -132,69 +132,11 @@ class Asetusframe(tk.Frame):
         self.controller.nayta_frame(Aloitusframe)
 
 
-class Peliframe(tk.Frame):
+class Pelaajaframe(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-
-        tilastoframe = Tilastoframe(self)
-        tilastoframe.grid(row=0, column=0, sticky="nsew")
-
-        pelaajaframe = Pelaajaframe(self)
-        pelaajaframe.grid(row=1, column=0, sticky="nsew")
-
-        nappi = ttk.Button(self, text="Aloitusframeen",
-                           command=lambda: self.controller.nayta_frame(Aloitusframe))
-        nappi.grid(row=2, column=0, sticky="nsew")
-
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=1)
-        self.columnconfigure(0, weight=1)
-
-
-class Tilastoframe(tk.Frame):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
-
-        self.luo_widgetit()
-
-    def luo_widgetit(self):
-
-        labelframe = ttk.LabelFrame(self, text="Tilastot")
-        labelframe.grid(row=0, column=0, columnspan=2, sticky="nsew")
-
-        label1 = tk.Label(labelframe, text="Kierros")
-        label1.grid(row=0, column=0, sticky="nsew")
-
-        kierros = tk.IntVar()
-        kierros.set(self.parent.controller.peli.kierros)
-        label2 = tk.Label(labelframe, textvariable=kierros)
-        label2.grid(row=0, column=1, sticky="nsew")
-
-        for i, pelaaja in enumerate(self.parent.controller.peli.pelaajat, start=1):
-            nimi = tk.StringVar()
-            nimi.set(pelaaja.get_nimi())
-            label3 = tk.Label(labelframe, textvariable=nimi)
-            label3.grid(row=i, column=0, sticky="nsew")
-
-            pisteet = tk.IntVar()
-            pisteet.set(pelaaja.get_pisteet())
-            label4 = tk.Label(labelframe, textvariable=pisteet)
-            label4.grid(row=i, column=1, sticky="nsew")
-
-
-class Pelaajaframe(tk.Frame):
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
 
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
@@ -220,9 +162,13 @@ class Pelaajaframe(tk.Frame):
 
             pelaaja_widgetit.append((label_pelaaja, entry_pelaaja))
 
-        nappi = ttk.Button(self, text="Pelaa",
+        nappi1 = ttk.Button(self, text="Aloitusframeen",
+                           command=lambda: self.controller.nayta_frame(Aloitusframe))
+        nappi1.grid(row=10, column=0, sticky="nsew")
+
+        nappi2 = ttk.Button(self, text="Pelaa",
                            command=lambda: self.kaynnista(pelaaja_widgetit))
-        nappi.grid(row=10, column=1, sticky="nsew")
+        nappi2.grid(row=10, column=1, sticky="nsew")
 
     def onValidate(self, P):
         """Validoidaan pelaajien nimet.
@@ -251,9 +197,95 @@ class Pelaajaframe(tk.Frame):
                 laskuri += 1
 
     def kaynnista(self, pelaajat):
+        import time
         self.tarkista_tyhjat_nimikentat(pelaajat)
 
         for _, pelaaja in pelaajat:
-            self.parent.controller.peli.luo_pelaaja(pelaaja.get())
+            self.controller.peli.luo_pelaaja(pelaaja.get())
+        
+        self.controller.nayta_frame(Peliframe)
+        # self.controller.peli.pelaa_peli()
 
-        self.parent.controller.peli.pelaa_peli()
+
+class Peliframe(tk.Frame):
+
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        tilastoframe = Tilastoframe(self)
+        tilastoframe.grid(row=0, column=0, sticky="nsew")
+
+        korttiframe = Korttiframe(self)
+        korttiframe.grid(row=1, column=0, sticky="nsew")
+
+        nappi = ttk.Button(self, text="Lopeta peli",
+                           command=self.lopeta_peli)
+        nappi.grid(row=2, column=0, sticky="nsew")
+
+        self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=1)
+        self.columnconfigure(0, weight=1)
+
+    def lopeta_peli(self):
+        self.controller.peli = Peli()
+        self.controller.paivita_framet()
+        self.controller.nayta_frame(Aloitusframe)
+
+
+class Tilastoframe(tk.Frame):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.luo_widgetit()
+
+    def luo_widgetit(self):
+
+        value_pad = 10
+
+        labelframe = ttk.LabelFrame(self, text="Tilastot")
+        labelframe.grid(row=0, column=0, columnspan=2, sticky="nsew")
+
+        label1 = tk.Label(labelframe, text="Kierros")
+        label1.grid(row=0, column=0, sticky="w")
+
+        kierros = tk.IntVar()
+        kierros.set(self.parent.controller.peli.kierros)
+        label2 = tk.Label(labelframe, textvariable=kierros)
+        label2.grid(row=0, column=1, sticky="w", padx=value_pad)
+
+        for i, pelaaja in enumerate(self.parent.controller.peli.pelaajat, start=1):
+            nimi = tk.StringVar()
+            nimi.set(pelaaja.get_nimi())
+            print(nimi.get())
+            label3 = tk.Label(labelframe, textvariable=nimi)
+            label3.grid(row=i, column=0, sticky="w")
+
+            pisteet = tk.IntVar()
+            pisteet.set(pelaaja.get_pisteet())
+            label4 = tk.Label(labelframe, textvariable=pisteet)
+            label4.grid(row=i, column=1, sticky="w", padx=value_pad)
+
+
+class Korttiframe(tk.Frame):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.luo_widgetit()
+
+    def luo_widgetit(self):
+
+        label = ttk.Label(self, text="Korttiframe")
+        label.grid(row=0, column=0, sticky="nsew")
+        
