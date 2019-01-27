@@ -9,8 +9,9 @@ class UnoCardGame(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # self.geometry("1024x768+16+100")
+        self.geometry("1024x768+16+100")
         self.configure(background="green")
+        self.resizable(width=False, height=False)
 
         tk.Tk.wm_title(self, "UNO Card Game")
 
@@ -21,6 +22,7 @@ class UnoCardGame(tk.Tk):
         self.paaikkuna.columnconfigure(0, weight=1)
 
         self.peli = Peli()
+        self.peli_kaynnissa = False
 
         self.framet = {}
         self.luo_framet()
@@ -197,14 +199,14 @@ class Pelaajaframe(tk.Frame):
                 laskuri += 1
 
     def kaynnista(self, pelaajat):
-        import time
         self.tarkista_tyhjat_nimikentat(pelaajat)
 
         for _, pelaaja in pelaajat:
             self.controller.peli.luo_pelaaja(pelaaja.get())
         
+        self.controller.peli.pelaa_peli()
+        self.controller.peli_kaynnissa = True
         self.controller.nayta_frame(Peliframe)
-        # self.controller.peli.pelaa_peli()
 
 
 class Peliframe(tk.Frame):
@@ -216,20 +218,21 @@ class Peliframe(tk.Frame):
         tilastoframe = Tilastoframe(self)
         tilastoframe.grid(row=0, column=0, sticky="nsew")
 
-        korttiframe = Korttiframe(self)
+        korttiframe = Korttiframe(self, self.controller)
         korttiframe.grid(row=1, column=0, sticky="nsew")
-
+        
         nappi = ttk.Button(self, text="Lopeta peli",
                            command=self.lopeta_peli)
         nappi.grid(row=2, column=0, sticky="nsew")
 
-        self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(0, weight=2)
+        self.rowconfigure(1, weight=20)
         self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
 
     def lopeta_peli(self):
         self.controller.peli = Peli()
+        self.controller.peli_kaynnissa = False
         self.controller.paivita_framet()
         self.controller.nayta_frame(Aloitusframe)
 
@@ -263,7 +266,6 @@ class Tilastoframe(tk.Frame):
         for i, pelaaja in enumerate(self.parent.controller.peli.pelaajat, start=1):
             nimi = tk.StringVar()
             nimi.set(pelaaja.get_nimi())
-            print(nimi.get())
             label3 = tk.Label(labelframe, textvariable=nimi)
             label3.grid(row=i, column=0, sticky="w")
 
@@ -275,17 +277,112 @@ class Tilastoframe(tk.Frame):
 
 class Korttiframe(tk.Frame):
 
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent)
-        self.parent = parent
+        self.controller = controller
 
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=11)
+        self.rowconfigure(1, weight=17)
+        self.rowconfigure(2, weight=11)
+        self.columnconfigure(0, weight=10)
+        self.columnconfigure(1, weight=15)
+        self.columnconfigure(2, weight=15)
+        self.columnconfigure(3, weight=10)
 
         self.luo_widgetit()
 
     def luo_widgetit(self):
+      
+        if self.controller.peli_kaynnissa:
 
-        label = ttk.Label(self, text="Korttiframe")
-        label.grid(row=0, column=0, sticky="nsew")
+            self.aseta_nostopakka()
+            self.aseta_poistopakan_kortti()
+            self.aseta_aloituskadet()
+ 
+    def aseta_nostopakka(self):
+        kuva_label = self.lataa_kuva(self, nostopakka=True)
+        kuva_label.grid(row=1, column=1, sticky="nsew")
+
+    def aseta_poistopakan_kortti(self):
+        kortti = self.controller.peli.poistopakka.get_viimeinen_kortti()
+        kuva_label = self.lataa_kuva(self, kortti=kortti)
+        kuva_label.grid(row=1, column=2, sticky="nsew")
+
+    def lataa_kuva(self, frame, kortti=None, nostopakka=False, oikea=False, yla=False):
+        if nostopakka:
+            kuva = tk.PhotoImage(file=Config.KORTIN_TAKA_NORMAALI)
+        if yla:
+            kuva = tk.PhotoImage(file=Config.KORTIN_TAKA_YLA)
+        elif oikea and not yla:
+            kuva = tk.PhotoImage(file=Config.KORTIN_TAKA_OIKEA)
+        elif not oikea and not yla and not nostopakka:
+            kuva = tk.PhotoImage(file=Config.KORTIN_TAKA_VASEN)
+        if kortti:
+            kuva = tk.PhotoImage(file=kortti.get_image())
+        kuva_label = tk.Label(frame, image=kuva)
+        kuva_label.image = kuva
+        return kuva_label
+
+    def aseta_aloituskadet(self):
+        self.luo_korttiframet()
+        for i, (pelaaja, frame) in enumerate(zip(self.controller.peli.pelaajat, self.korttiframet)):
+            if i == 0:
+                self.aseta_vaaka_kasi(frame, pelaaja)
+            elif i == 1:
+                self.aseta_pysty_kasi(frame, pelaaja)
+            elif i == 2:
+                self.aseta_pysty_kasi(frame, pelaaja, oikea=True)
+            elif i == 3:     
+                self.aseta_vaaka_kasi(frame, pelaaja, yla=True)
+
+    def luo_korttiframet(self):
+        self.korttiframet = []
+        for i in range(0, 4):
+
+            if i == 0 or i == 3:
+                # vaakatasossa olevat kadet
+                frame = tk.Frame(self, borderwidth=1, relief="sunken", padx=10)
+                # luodaan tyhja labeli, muuten jostain syysta vaakakortit sisallaan
+                # pitavat rivit jaavat liian mataliksi
+                label = tk.Label(frame, text=" ", height=4)
+                label.pack()
+            else:
+                # pystytasossa olevat kadet
+                frame = tk.Frame(self, borderwidth=1, relief="sunken", pady=10)
+            
+            if i == 0:
+                frame.grid(row=2, column=1, columnspan=2, sticky="nsew")
+            elif i == 1:
+                frame.grid(row=1, column=0, sticky="nsew")
+            elif i == 2:
+                frame.grid(row=1, column=3, sticky="nsew")
+            elif i == 3:
+                frame.grid(row=0, column=1, columnspan=2, sticky="nsew")
+
+            frame.columnconfigure(0, weight=1)
+            frame.rowconfigure(0, weight=1)
+            self.korttiframet.append(frame)
+
+    def aseta_vaaka_kasi(self, frame, pelaaja, yla=False):
+        for i, kortti in enumerate(pelaaja.get_kasi()):
+            if yla:
+                kuva = self.lataa_kuva(frame, yla=yla)
+                kuva.place(x=i*45, y=147, anchor="sw")
+            else:
+                kuva = self.lataa_kuva(frame, kortti=kortti)
+                kuva.place(x=i*45, y=155, anchor="sw")
+
+    def aseta_pysty_kasi(self, frame, pelaaja, oikea=False):
+        for i, _ in enumerate(pelaaja.get_kasi()):
+            kuva = self.lataa_kuva(frame, oikea=oikea)
+            if oikea:
+                kuva.place(x=15, y=i*15, anchor="nw")
+            else:
+                kuva.place(x=0, y=i*15, anchor="nw")
+
+
+class Kasiframe(tk.Frame):
+    pass           
+
+            
         

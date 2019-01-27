@@ -14,5 +14,14 @@ class Kortti:
     def get_arvo(self):
         return self.arvo
 
+    def get_image(self):
+        path = "cards/"
+        ext = ".png"
+        special = "spc"
+        if self.arvo <= 12:
+            return f"{path}{str(self.arvo).zfill(2)}_{self.vari}{ext}"
+        else:
+            return f"{path}{str(self.arvo).zfill(2)}_{special}{ext}"
+
     def __str__(self):
         return f"{self.arvo:<2} {self.vari}{' ' + self.toiminta if self.toiminta else ''}"

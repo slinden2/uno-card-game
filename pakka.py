@@ -19,13 +19,19 @@ class Pakka:
 
     def __init__(self):
         self.korttipakka = []
-        self.varit = ["PUN", "KEL", "VIH", "SIN"]
+        self.varit = ["red", "yel", "gre", "blu"]
         self.luotu = False
         self.toimintakortit = {10: "OHITUS",
                                11: "SUUNNANVAIHTO",
                                12: "NOSTA 2",
                                13: "JOKERI",
                                14: "JOKERI + 4"}
+
+    # TODO apumetodi korttien testamiseen
+    # def luo_pakka(self):
+    #     for i in range(0, 50):
+    #         self.korttipakka.append(Kortti(0, "blu", 0))
+    #     self.luotu = True
 
     def luo_pakka(self):
         if self.luotu:

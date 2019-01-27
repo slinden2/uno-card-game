@@ -40,39 +40,57 @@ class Peli:
         return cls(2, 50)
 
     def kaynnista(self):
-        self.luo_pelaajat()
         self.pelaa_peli()
 
     def luo_pelaaja(self, nimi):
         self.pelaajat.append(Pelaaja(nimi))
         print()
 
-    def pelaa_peli(self):
-        """Pelinhallintametodi
-        Metodin suoritus loppuu, kun joku pelaajista saavuttaa
-        voittoon tarvittavan pistemäärän.
-        """
-        print("Tervetuloa UNO-korttipeliin.")
-        print()
+    # def pelaa_peli(self):
+    #     """Pelinhallintametodi
+    #     Metodin suoritus loppuu, kun joku pelaajista saavuttaa
+    #     voittoon tarvittavan pistemäärän.
+    #     """
+    #     print("Tervetuloa UNO-korttipeliin.")
+    #     print()
 
+    #     self.pelaajien_lkm = len(self.pelaajat)
+    #     self.voittopisteet = Config.VOITTOPISTEET
+
+    #     while True:
+    #         # määritetään kierroksen kierroksen aloittava pelaaja
+    #         if self.kierros > 1:
+    #             self.maarita_aloittava_pelaaja()
+
+    #         self.kierros_pelattu = False
+    #         self.nostopakka.luo_pakka()
+    #         self.nostopakka.sekoita()
+    #         self.jaa_aloituskortit()
+    #         self.nostopakka.kaanna_pakka()
+    #         self.aloituskortti_poistopakkaan()
+    #         self.pelaa_kierros()
+
+    #         if self._tarkista_voittopisteet():
+    #             break
+
+    def pelaa_peli(self):
         self.pelaajien_lkm = len(self.pelaajat)
         self.voittopisteet = Config.VOITTOPISTEET
 
-        while True:
-            # määritetään kierroksen kierroksen aloittava pelaaja
-            if self.kierros > 1:
+        if self.kierros > 1:
                 self.maarita_aloittava_pelaaja()
 
-            self.kierros_pelattu = False
-            self.nostopakka.luo_pakka()
-            self.nostopakka.sekoita()
-            self.jaa_aloituskortit()
-            self.nostopakka.kaanna_pakka()
-            self.aloituskortti_poistopakkaan()
-            self.pelaa_kierros()
+        self.kierros_pelattu = False
+        self.nostopakka.luo_pakka()
+        self.nostopakka.sekoita()
+        self.jaa_aloituskortit()
+        self.nostopakka.kaanna_pakka()
+        self.aloituskortti_poistopakkaan()
+        # self.pelaa_kierros()
 
-            if self._tarkista_voittopisteet():
-                break
+        # if self._tarkista_voittopisteet():
+        #     # keksi jotain mika lopettaa pelin
+        #     pass
 
     def maarita_aloittava_pelaaja(self):
         if self.aloittaja < len(self.pelaajat):

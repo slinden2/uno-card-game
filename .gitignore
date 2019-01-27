@@ -3,5 +3,6 @@
 uno.py
 testfile.py
 cards/UNO*
+cards/scrap
 
 __pycache__/
