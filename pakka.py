@@ -21,11 +21,11 @@ class Pakka:
         self.korttipakka = []
         self.varit = ["red", "yel", "gre", "blu"]
         self.luotu = False
-        self.toimintakortit = {10: "OHITUS",
-                               11: "SUUNNANVAIHTO",
-                               12: "NOSTA 2",
-                               13: "JOKERI",
-                               14: "JOKERI + 4"}
+        self.toimintakortit = {10: "ohitus",
+                               11: "suunnanvaihto",
+                               12: "nosta 2",
+                               13: "jokeri",
+                               14: "jokeri + 4"}
 
     # TODO apumetodi korttien testamiseen
     # def luo_pakka(self):

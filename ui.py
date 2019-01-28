@@ -53,6 +53,7 @@ class UnoCardGame(tk.Tk):
         self.framet[frame] = frame1
         frame1.grid(row=0, column=0, sticky="nsew")
 
+
 class Aloitusframe(tk.Frame):
 
     def __init__(self, parent, controller):
@@ -165,11 +166,11 @@ class Pelaajaframe(tk.Frame):
             pelaaja_widgetit.append((label_pelaaja, entry_pelaaja))
 
         nappi1 = ttk.Button(self, text="Aloitusframeen",
-                           command=lambda: self.controller.nayta_frame(Aloitusframe))
+                            command=lambda: self.controller.nayta_frame(Aloitusframe))
         nappi1.grid(row=10, column=0, sticky="nsew")
 
         nappi2 = ttk.Button(self, text="Pelaa",
-                           command=lambda: self.kaynnista(pelaaja_widgetit))
+                            command=lambda: self.kaynnista(pelaaja_widgetit))
         nappi2.grid(row=10, column=1, sticky="nsew")
 
     def onValidate(self, P):
@@ -203,7 +204,7 @@ class Pelaajaframe(tk.Frame):
 
         for _, pelaaja in pelaajat:
             self.controller.peli.luo_pelaaja(pelaaja.get())
-        
+
         self.controller.peli.pelaa_peli()
         self.controller.peli_kaynnissa = True
         self.controller.nayta_frame(Peliframe)
@@ -220,7 +221,7 @@ class Peliframe(tk.Frame):
 
         korttiframe = Korttiframe(self, self.controller)
         korttiframe.grid(row=1, column=0, sticky="nsew")
-        
+
         nappi = ttk.Button(self, text="Lopeta peli",
                            command=self.lopeta_peli)
         nappi.grid(row=2, column=0, sticky="nsew")
@@ -292,21 +293,21 @@ class Korttiframe(tk.Frame):
         self.luo_widgetit()
 
     def luo_widgetit(self):
-      
+
         if self.controller.peli_kaynnissa:
 
             self.aseta_nostopakka()
             self.aseta_poistopakan_kortti()
             self.aseta_aloituskadet()
- 
+
     def aseta_nostopakka(self):
         kuva_label = self.lataa_kuva(self, nostopakka=True)
-        kuva_label.grid(row=1, column=1, sticky="nsew")
+        kuva_label.grid(row=1, column=1)
 
     def aseta_poistopakan_kortti(self):
         kortti = self.controller.peli.poistopakka.get_viimeinen_kortti()
         kuva_label = self.lataa_kuva(self, kortti=kortti)
-        kuva_label.grid(row=1, column=2, sticky="nsew")
+        kuva_label.grid(row=1, column=2)
 
     def lataa_kuva(self, frame, kortti=None, nostopakka=False, oikea=False, yla=False):
         if nostopakka:
@@ -319,7 +320,7 @@ class Korttiframe(tk.Frame):
             kuva = tk.PhotoImage(file=Config.KORTIN_TAKA_VASEN)
         if kortti:
             kuva = tk.PhotoImage(file=kortti.get_image())
-        kuva_label = tk.Label(frame, image=kuva)
+        kuva_label = Kuvalabel(frame, self.controller, image=kuva)
         kuva_label.image = kuva
         return kuva_label
 
@@ -332,7 +333,7 @@ class Korttiframe(tk.Frame):
                 self.aseta_pysty_kasi(frame, pelaaja)
             elif i == 2:
                 self.aseta_pysty_kasi(frame, pelaaja, oikea=True)
-            elif i == 3:     
+            elif i == 3:
                 self.aseta_vaaka_kasi(frame, pelaaja, yla=True)
 
     def luo_korttiframet(self):
@@ -349,7 +350,7 @@ class Korttiframe(tk.Frame):
             else:
                 # pystytasossa olevat kadet
                 frame = tk.Frame(self, borderwidth=1, relief="sunken", pady=10)
-            
+
             if i == 0:
                 frame.grid(row=2, column=1, columnspan=2, sticky="nsew")
             elif i == 1:
@@ -382,7 +383,36 @@ class Korttiframe(tk.Frame):
 
 
 class Kasiframe(tk.Frame):
-    pass           
 
-            
-        
+    def __init__(self, parent, controller, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.controller = controller
+
+    #     self.bind("<Button-1>", self.callback)
+
+    # def callback(self, event):
+    #     print(event)
+
+
+class Kuvalabel(tk.Label):
+
+    def __init__(self, parent, controller, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.controller = controller
+
+        self.bind("<Button-1>", self.valitse_kortti)
+
+    def valitse_kortti(self, event):
+        if (self.winfo_parent() == ".!frame.!peliframe2.!korttiframe" and
+                self.winfo_name() == "!kuvalabel"):
+            self.nosta_kortti()
+        elif self.winfo_parent() == ".!frame.!peliframe2.!korttiframe.!frame":
+            self.pelaa_kortti()
+
+    def nosta_kortti(self):
+        print("Nostetaan kortti")
+
+    def pelaa_kortti(self):
+        indeksi = self.winfo_name()[-1:]
+        indeksi = int(indeksi) - 1 if indeksi != "l" else 0
+        print(self.controller.peli.pelaajat[0].get_kasi()[indeksi])

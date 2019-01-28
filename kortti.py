@@ -24,4 +24,4 @@ class Kortti:
             return f"{path}{str(self.arvo).zfill(2)}_{special}{ext}"
 
     def __str__(self):
-        return f"{self.arvo:<2} {self.vari}{' ' + self.toiminta if self.toiminta else ''}"
+        return f"{self.arvo} {self.vari}{' ' + self.toiminta if self.toiminta else ''}"
