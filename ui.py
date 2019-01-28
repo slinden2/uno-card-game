@@ -201,9 +201,11 @@ class Pelaajaframe(tk.Frame):
 
     def kaynnista(self, pelaajat):
         self.tarkista_tyhjat_nimikentat(pelaajat)
-
-        for _, pelaaja in pelaajat:
-            self.controller.peli.luo_pelaaja(pelaaja.get())
+        # luodaan pelaaja
+        self.controller.peli.luo_pelaaja(pelaajat[0][1].get())
+        # luodaan tietokoneet
+        for _, pelaaja in pelaajat[1:]:
+            self.controller.peli.luo_pelaaja(pelaaja.get(), tietokone=True)
 
         self.controller.peli.pelaa_peli()
         self.controller.peli_kaynnissa = True
@@ -382,18 +384,6 @@ class Korttiframe(tk.Frame):
                 kuva.place(x=0, y=i*15, anchor="nw")
 
 
-class Kasiframe(tk.Frame):
-
-    def __init__(self, parent, controller, **kwargs):
-        super().__init__(parent, **kwargs)
-        self.controller = controller
-
-    #     self.bind("<Button-1>", self.callback)
-
-    # def callback(self, event):
-    #     print(event)
-
-
 class Kuvalabel(tk.Label):
 
     def __init__(self, parent, controller, **kwargs):
@@ -403,16 +393,23 @@ class Kuvalabel(tk.Label):
         self.bind("<Button-1>", self.valitse_kortti)
 
     def valitse_kortti(self, event):
+        # TODO ei toimi >2 pelaajalla. peliframen numero vaihtuu 2->3
         if (self.winfo_parent() == ".!frame.!peliframe2.!korttiframe" and
                 self.winfo_name() == "!kuvalabel"):
             self.nosta_kortti()
+        elif (self.winfo_parent() == ".!frame.!peliframe2.!korttiframe" and
+                self.winfo_name() == "!kuvalabel2"):
+            self.passaa()
         elif self.winfo_parent() == ".!frame.!peliframe2.!korttiframe.!frame":
             self.pelaa_kortti()
 
+    def passaa(self):
+        self.controller.peli.pelaa_vuoro("P")
+
     def nosta_kortti(self):
-        print("Nostetaan kortti")
+        self.controller.peli.pelaa_vuoro("N")
 
     def pelaa_kortti(self):
         indeksi = self.winfo_name()[-1:]
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
-        print(self.controller.peli.pelaajat[0].get_kasi()[indeksi])
+        self.controller.peli.pelaa_vuoro(indeksi)

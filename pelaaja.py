@@ -8,8 +8,9 @@ class Pelaaja:
     :param nimi: Pelaajan nimi
     """
 
-    def __init__(self, nimi):
+    def __init__(self, nimi, tietokone=False):
         self.nimi = nimi
+        self.tietokone = tietokone
         self.pisteet = 0
         self.voitot = 0
         self.kasi = []
