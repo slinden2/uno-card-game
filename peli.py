@@ -24,6 +24,7 @@ class Peli:
         self.aloittaja = 0
         self.pelisuunta = 1
         self.kortti_nostettu = False
+        self.kortti_nostettu_tietokone = False
         self.vuoro_pelattu = False
         self.vuoro_pelattu_tietokone = False
         self.kierros_pelattu = False
@@ -172,33 +173,42 @@ class Peli:
             self.pelaa_tietokoneiden_vuorot()
 
     def alusta_vuoro(self):
-        vika_kortti = self.poistopakka.get_viimeinen_kortti()
-        print(f"Kysytty kortti on {vika_kortti}.")
-        if vika_kortti.arvo >= 13:
+        self.vuoro_pelattu_tietokone = False
+
+        kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()
+        print(f"Pelaajalta kysyttyva kortti on {kysyttava_kortti}.")
+        if kysyttava_kortti.arvo >= 13:
             print(f"Jokeriväri on {self.jokerivari}.")
 
         pelaaja = self.get_vuorossaoleva_pelaaja()
         print(f"Vuorossa on {pelaaja.get_nimi()}.")
+        
+    def lopeta_vuoro(self):
         self.vuoro_pelattu = False
         self.kortti_nostettu = False
-        self.vuoro_pelattu_tietokone = False
-
+        self.kortti_nostettu_tietokone = False
+        self.seuraava_pelaaja()
+    
     def pelaa_tietokoneiden_vuorot(self):
         # for pelaaja in list(filter(lambda x: x.tietokone, self.pelaajat))[::self.pelisuunta]:
         #     print(pelaaja)
+        kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()
+        print(f"Tietokoneelta kysyttyva kortti on {kysyttava_kortti}.")
         pelaaja = self.get_vuorossaoleva_pelaaja()
         kasi = pelaaja.get_kasi()
-        random.shuffle(kasi)
+        # random.shuffle(kasi)  # TODO
         self._nosta_kortti()
         for kortti in kasi:
+            print(kortti)
+            print(self.vuoro_pelattu_tietokone)
             self._pelaa_kortti(kortti)
             if self.vuoro_pelattu_tietokone:
-                print("Kortti pelattu")  # TODO testaus
                 break
         else:
             self._passaa()
-        self.seuraava_pelaaja()
-        print("tietokoneen vuoro pelattu")  # TODO testaus
+        print("Tietokoneen vuoro pelattu")  # TODO testaus
+        print("===========")
+        self.lopeta_vuoro()
 
     def passaa(self):
         self._passaa()
@@ -234,6 +244,8 @@ class Peli:
     def _nosta_kortti(self):
         pelaaja = self.get_vuorossaoleva_pelaaja()
         if self._hyvaksyta_nosto():
+            if pelaaja.tietokone:
+                print("Tietokone nostaa kortin")
             pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
             print(f"Nostettu kortti: {pelaaja.get_viimeinen_kortti()}")
 
@@ -254,24 +266,30 @@ class Peli:
                        f"kortti {kortti} on pelattavissa."))
                 return False
 
-            if self.kortti_nostettu:
-                print("Olet jo nostanut kortin!")
-                return False
+        if self.kortti_nostettu and not pelaaja.tietokone:
+            print("Olet jo nostanut kortin!")
+            return False
+
+        if self.kortti_nostettu_tietokone and pelaaja.tietokone:
+            return False
 
         self.kortti_nostettu = True
+        if pelaaja.tietokone:
+            self.kortti_nostettu_tietokone = True
         return True
 
     def _passaa(self):
+        pelaaja = self.get_vuorossaoleva_pelaaja()
         if self.kortti_nostettu or len(self.nostopakka) == 0:
-            print("Passataan")  # TODO testaus
             self.vuoro_pelattu = True
         else:
             print("Et voi passata!")
+        if pelaaja.tietokone and (self.kortti_nostettu_tietokone or len(self.nostopakka) == 0):
+            self.vuoro_pelattu_tietokone = True
 
     def _pelaa_kortti(self, kortti):
         """Metodi hoitaa pelattuun korttiin liittyvät toiminnot.
         """
-        print(kortti)  # TODO testaus
         pelaaja = self.get_vuorossaoleva_pelaaja()
         if self._hyvaksyta_pelattu_kortti(kortti):
 
@@ -290,7 +308,10 @@ class Peli:
             self.vuoro_pelattu = True
 
             if pelaaja.tietokone:
+                print(f"Tietokone pelasi {kortti}")
                 self.vuoro_pelattu_tietokone = True
+            else:
+                print(f"Pelaaja pelasi {kortti}")
 
     def _hyvaksyta_pelattu_kortti(self, pelattu_kortti, nosto=False):
         """Tarkistaa, että onko pelaajan valitsema kortti pelattavissa.
@@ -303,8 +324,9 @@ class Peli:
                 pelattu_kortti.vari == self.jokerivari:
             return True
 
-        if not nosto:
-            print("Kortti ei kelpaa!")
+        # TODO
+        # if not nosto:
+        #     print("Kortti ei kelpaa!")
 
         return False
 

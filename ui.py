@@ -441,5 +441,7 @@ class Kuvalabel(tk.Label):
 
         # jatka tietokoneen vuoronpelaamisalgoritmia
 
-        # kortin nosto ja passaus ei vielä toimi. kierroksen alustusajankohta
-        # ja tarvittavat muuttujat työn alla
+        # passauksen jalkeen tietokone nostaa kortin, mutta ei 
+        # yrita pelata sita
+        # kokeile selvittaa debuggerilla miksi self.vuoro_pelattu_tietokone
+        # on vaarassa tilassa
