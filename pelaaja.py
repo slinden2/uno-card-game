@@ -62,5 +62,8 @@ class Pelaaja:
     def get_pisteet(self):
         return self.pisteet
 
+    def on_tietokone(self):
+        return self.tietokone
+
     def __str__(self):
         return f"Nimi: {self.nimi} - Käsi: {[str(kortti) for kortti in self.kasi]}"

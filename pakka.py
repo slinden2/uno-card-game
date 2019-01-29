@@ -40,7 +40,7 @@ class Pakka:
         self._luo_nollakortit()
         self._luo_varikortit()
         self._luo_varikortit()
-        self._luo_erikoiskortit()
+        # self._luo_erikoiskortit()  # TODO testausta varten
         self.luotu = True
 
     def _luo_nollakortit(self):
@@ -55,7 +55,8 @@ class Pakka:
             -1 nosta 2 -kortti (arvo 12)
         """
         for vari in self.varit:
-            for i in range(1, 13):
+            # TODO muokattu testausta varten. Oikea arvo 13.
+            for i in range(1, 10):
                 if i < 10:
                     self.korttipakka.append(
                         Kortti(i, vari, i, self.toimintakortit.get(i, None)))
