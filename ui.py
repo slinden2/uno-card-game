@@ -218,8 +218,8 @@ class Peliframe(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        tilastoframe = Tilastoframe(self)
-        tilastoframe.grid(row=0, column=0, sticky="nsew")
+        self.tilastoframe = Tilastoframe(self)
+        self.tilastoframe.grid(row=0, column=0, sticky="nsew")
 
         self.korttiframe = Korttiframe(self, self.controller)
         self.korttiframe.grid(row=1, column=0, sticky="nsew")
@@ -239,11 +239,10 @@ class Peliframe(tk.Frame):
         self.controller.paivita_framet()
         self.controller.nayta_frame(Aloitusframe)
 
-    # TODO
-    # def paivita_pakat(self):
-    #     self.korttiframe.destroy()
-    #     self.korttiframe = Korttiframe(self, self.controller)
-    #     self.korttiframe.grid(row=1, column=0, sticky="nsew")
+    def paivita_tilastoframe(self):
+        self.tilastoframe.destroy()
+        self.tilastoframe = Tilastoframe(self)
+        self.tilastoframe.grid(row=0, column=0, sticky="nsew")
 
 
 class Tilastoframe(tk.Frame):
@@ -422,26 +421,29 @@ class Kuvalabel(tk.Label):
         elif self.name == "kasi":
             self.pelaa_kortti()
 
+        if self.controller.peli.kierros_pelattu:
+            self.parent.master.parent.paivita_tilastoframe()
+
     def passaa(self):
         self.controller.peli.passaa()
         if self.controller.peli.vuoro_pelattu_tietokone:
             self.parent.paivita_pakat()
 
     def nosta_kortti(self):
-        self.controller.peli._nosta_kortti()
+        self.controller.peli.nosta_kortti()
         if self.controller.peli.kortti_nostettu:
             self.parent.paivita_pakat()
 
     def pelaa_kortti(self):
         indeksi = self.winfo_name()[-1:]
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
-        self.controller.peli.pelaa_vuoro(indeksi)
+        self.controller.peli.pelaa_kortti(indeksi)
         if self.controller.peli.vuoro_pelattu_tietokone:
             self.parent.master.paivita_pakat()
 
-        # jatka tietokoneen vuoronpelaamisalgoritmia
+        # peli nayttaa toimivan kahdella pelaajalla ja ilman toimintakortteja
 
-        # passauksen jalkeen tietokone nostaa kortin, mutta ei 
-        # yrita pelata sita
-        # kokeile selvittaa debuggerilla miksi self.vuoro_pelattu_tietokone
-        # on vaarassa tilassa
+        # lisätään toiminnallisuutta siten, että kierrokset ja pelin
+        # pisteytys toimii
+
+        # missä vaiheessa suoritetaan voitontarkistus?
