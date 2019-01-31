@@ -1,3 +1,6 @@
+from config import Config
+
+
 class Kortti:
     """UNO-kortin luokka.
     """
@@ -25,3 +28,22 @@ class Kortti:
 
     def __str__(self):
         return f"{self.arvo} {self.vari}{' ' + self.toiminta if self.toiminta else ''}"
+
+    def __repr__(self):
+        return f"Kortti({self.arvo}, {self.vari}, {self.pisteet}, {self.toiminta})"
+
+    def __lt__(self, other):
+        if self._quantify_color(self.vari) < self._quantify_color(other.vari):
+            return True
+        if self.arvo < other.arvo and \
+            (self._quantify_color(self.vari) ==
+             self._quantify_color(other.vari)):
+            return True
+        return False
+
+    @staticmethod
+    def _quantify_color(color):
+        color_dict = {k: v for v, k in enumerate(Config.KORTTIVARIT)}
+        if color == Config.ERIKOISVARI:
+            return len(color_dict)
+        return color_dict[color]

@@ -207,7 +207,7 @@ class Pelaajaframe(tk.Frame):
         for _, pelaaja in pelaajat[1:]:
             self.controller.peli.luo_pelaaja(pelaaja.get(), True)
 
-        self.controller.peli.pelaa_peli()
+        self.controller.peli.alusta_peli()
         self.controller.peli_kaynnissa = True
         self.controller.nayta_frame(Peliframe)
 
@@ -218,50 +218,45 @@ class Peliframe(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        self.tilastoframe = Tilastoframe(self)
+        self.tilastoframe = Tilastoframe(self, self.controller)
         self.tilastoframe.grid(row=0, column=0, sticky="nsew")
 
         self.korttiframe = Korttiframe(self, self.controller)
         self.korttiframe.grid(row=1, column=0, sticky="nsew")
-
-        nappi = ttk.Button(self, text="Lopeta peli",
-                           command=self.lopeta_peli)
-        nappi.grid(row=2, column=0, sticky="nsew")
 
         self.rowconfigure(0, weight=2)
         self.rowconfigure(1, weight=20)
         self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
 
-    def lopeta_peli(self):
-        self.controller.peli = Peli()
-        self.controller.peli_kaynnissa = False
-        self.controller.paivita_framet()
-        self.controller.nayta_frame(Aloitusframe)
-
     def paivita_tilastoframe(self):
         self.tilastoframe.destroy()
-        self.tilastoframe = Tilastoframe(self)
+        self.tilastoframe = Tilastoframe(self, self.controller)
         self.tilastoframe.grid(row=0, column=0, sticky="nsew")
 
 
 class Tilastoframe(tk.Frame):
 
-    def __init__(self, parent):
+    def __init__(self, parent, controller):
         super().__init__(parent)
         self.parent = parent
+        self.controller = controller
 
         self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=1)
         self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=10)
 
         self.luo_widgetit()
+        self.luo_feed_widgetit()
+        self.luo_hallintanapit()
 
     def luo_widgetit(self):
 
         value_pad = 10
 
         labelframe = ttk.LabelFrame(self, text="Tilastot")
-        labelframe.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        labelframe.grid(row=0, column=0, rowspan=2, padx=5, sticky="nsew")
 
         label1 = tk.Label(labelframe, text="Kierros")
         label1.grid(row=0, column=0, sticky="w")
@@ -281,6 +276,42 @@ class Tilastoframe(tk.Frame):
             pisteet.set(pelaaja.get_pisteet())
             label4 = tk.Label(labelframe, textvariable=pisteet)
             label4.grid(row=i, column=1, sticky="w", padx=value_pad)
+
+    def luo_feed_widgetit(self):
+
+        self.feed_frame = ttk.LabelFrame(self, text="Feed")
+        self.feed_frame.grid(row=0, column=1, rowspan=2, padx=5, sticky="nsew")
+
+        for timestamp in self.controller.peli.feed.messages:
+            msg = " - ".join(timestamp)
+            text = tk.StringVar()
+            text.set(msg)
+            self.otsikko_label = tk.Label(self.feed_frame, textvariable=text)
+            self.otsikko_label.pack()
+
+    def luo_hallintanapit(self):
+        kierros_nappi = ttk.Button(
+            self, text="Seuraava kierros", command=self.aloita_seuraava_kierros)
+        kierros_nappi.grid(row=0, column=2, sticky="ew")
+
+        lopeta_nappi = ttk.Button(
+            self, text="Lopeta peli", command=self.lopeta_peli)
+        lopeta_nappi.grid(row=1, column=2, sticky="ew")
+
+    def aloita_seuraava_kierros(self):
+        self.controller.peli.pelaa_peli()
+        self.paivita_feed()
+        self.parent.korttiframe.paivita_pakat()
+
+    def lopeta_peli(self):
+        self.controller.peli = Peli()
+        self.controller.peli_kaynnissa = False
+        self.controller.paivita_framet()
+        self.controller.nayta_frame(Aloitusframe)
+
+    def paivita_feed(self):
+        self.feed_frame.destroy()
+        self.luo_feed_widgetit()
 
 
 class Korttiframe(tk.Frame):
@@ -357,14 +388,14 @@ class Korttiframe(tk.Frame):
 
             if i == 0 or i == 3:
                 # vaakatasossa olevat kadet
-                frame = tk.Frame(self, borderwidth=1, relief="sunken", padx=10)
+                frame = tk.Frame(self, borderwidth=1, padx=10)
                 # luodaan tyhja labeli, muuten jostain syysta vaakakortit sisallaan
                 # pitavat rivit jaavat liian mataliksi
                 label = tk.Label(frame, text=" ", height=4)
                 label.pack()
             else:
                 # pystytasossa olevat kadet
-                frame = tk.Frame(self, borderwidth=1, relief="sunken", pady=10)
+                frame = tk.Frame(self, borderwidth=1, pady=10)
 
             if i == 0:
                 frame.grid(row=2, column=1, columnspan=2, sticky="nsew")
@@ -426,6 +457,7 @@ class Kuvalabel(tk.Label):
 
         if self.controller.peli.vuoro_pelattu_tietokone:
             self.parent.paivita_pakat()
+            self.parent.parent.tilastoframe.paivita_feed()
 
         if self.controller.peli.kierros_pelattu:
             self.parent.parent.paivita_tilastoframe()
@@ -434,6 +466,7 @@ class Kuvalabel(tk.Label):
         self.controller.peli.nosta_kortti()
 
         if self.controller.peli.kortti_nostettu:
+            self.parent.parent.tilastoframe.paivita_feed()
             self.parent.paivita_pakat()
 
     def pelaa_kortti(self):
@@ -443,10 +476,15 @@ class Kuvalabel(tk.Label):
 
         if self.controller.peli.vuoro_pelattu_tietokone:
             self.parent.master.paivita_pakat()
+            self.parent.master.parent.tilastoframe.paivita_feed()
 
         if self.controller.peli.kierros_pelattu:
             self.parent.master.paivita_pakat()
             self.parent.master.parent.paivita_tilastoframe()
 
-        # lisätään toiminnallisuutta siten, että kierrokset ja pelin
-        # pisteytys toimii
+        # kierrokset toimii. tarkasta pisteytys (vaikuttaa ok)
+
+        # vaihtuuko vuoro oikein kierroksen loppuessa?
+
+        # uusi frame nosto- ja poistopakoille?
+        # helpottuisi kommunikointi framejen välillä

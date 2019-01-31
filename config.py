@@ -1,6 +1,7 @@
 class Config:
 
-    ERIKOISVARI = 'NA'
+    KORTTIVARIT = ["red", "yel", "gre", "blu"]
+    ERIKOISVARI = 'spc'
     TAUSTAVARI = 'green'
     PELAAJA_LKM = 2
     VOITTOPISTEET = 500

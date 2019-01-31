@@ -3,6 +3,7 @@ import random
 from config import Config
 from pakka import Pakka
 from pelaaja import Pelaaja
+from feed import Feed
 
 
 class Peli:
@@ -29,6 +30,7 @@ class Peli:
         self.vuoro_pelattu_tietokone = False
         self.kierros_pelattu = False
         self.jokerivari = Config.ERIKOISVARI
+        self.feed = Feed(5)
 
         # Muuttujaa käytetään pelaajan voiton määrityksessä.
         # Jos pelaajan viimeinen kädessä oleva kortti on
@@ -52,20 +54,33 @@ class Peli:
     def luo_pelaaja(self, nimi, tietokone):
         self.pelaajat.append(Pelaaja(nimi, tietokone))
 
-    def pelaa_peli(self):
+    def alusta_peli(self):
         self.pelaajien_lkm = len(self.pelaajat)
         self.voittopisteet = Config.VOITTOPISTEET
+        self.pelaa_peli()
 
+    def pelaa_peli(self):
+        self.feed.add_msg(
+            f"Uusi kierros alkaa. Kierroksen numero on {self.kierros}.")
         self.kierros_pelattu = False
         self.nostopakka.luo_pakka()
         self.nostopakka.sekoita()
         self._jaa_aloituskortit()
         self.nostopakka.kaanna_pakka()
         self._aloituskortti_poistopakkaan()
-        self.aloita_kierros()
-        if self._tarkista_voittopisteet():
-            # keksi jotain mika lopettaa pelin
-            pass
+
+        if self.kierros > 1:
+            self._maarita_aloittava_pelaaja()
+
+        self.toimintakortin_pelannut_pelaaja = None
+
+        print(self.vuorossa)
+        if self.vuorossa != 0:
+            self._pelaa_tietokoneiden_vuorot()
+
+        # if self._tarkista_voittopisteet():
+        #     # keksi jotain mika lopettaa pelin
+        #     pass
 
     def _maarita_aloittava_pelaaja(self):
         if self.aloittaja < self.pelaajien_lkm:
@@ -112,6 +127,8 @@ class Peli:
         for _ in range(0, 7):
             for pelaaja in self.pelaajat:
                 pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
+        for pelaaja in self.pelaajat:
+            pelaaja.kasi.sort()
 
     def _aloituskortti_poistopakkaan(self):
         """Asetetaan aloituskortti poistopakkaan.
@@ -133,16 +150,17 @@ class Peli:
         for pelaaja in self.pelaajat:
             pelaaja.tuhoa_kasi()
 
-    def aloita_kierros(self):
-        """Yksittäinen kierros päättyy, kun jokin pelaajista
-        saa pelattua kätensä viimeisen kortin.
-        """
-        print("Uusi kierros alkaa")
+    # TODO yhdistetty pelaa_peli-metodiin
+    # def aloita_kierros(self):
+    #     """Yksittäinen kierros päättyy, kun jokin pelaajista
+    #     saa pelattua kätensä viimeisen kortin.
+    #     """
+    #     print("Uusi kierros alkaa")
 
-        if self.kierros > 1:
-            self._maarita_aloittava_pelaaja()
+    #     if self.kierros > 1:
+    #         self._maarita_aloittava_pelaaja()
 
-        self.toimintakortin_pelannut_pelaaja = None
+    #     self.toimintakortin_pelannut_pelaaja = None
 
     def pelaa_kortti(self, kortti):
         """Tata metodia kutsutaan tiedostosta ui.py. Kun pelaaja valitsee
@@ -197,8 +215,6 @@ class Peli:
         self._seuraava_pelaaja()
 
     def _pelaa_tietokoneiden_vuorot(self):
-        # for pelaaja in list(filter(lambda x: x.tietokone, self.pelaajat))[::self.pelisuunta]:
-        #     print(pelaaja)
         kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()  # TODO
         print(f"Tietokoneelta kysyttyva kortti on {kysyttava_kortti}.")  # TODO
         pelaaja = self._get_vuorossaoleva_pelaaja()
@@ -223,6 +239,9 @@ class Peli:
             print(
                 f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
             self._tuhoa_pelaajien_kadet()
+            self.feed.add_msg(
+                f"Kierros {self.kierros} päättyi. Voittaja on {pelaaja.get_nimi()}.")
+            self.kierros += 1
             self.kierros_pelattu = True
 
     def _pelaajan_syote(self):
@@ -257,6 +276,7 @@ class Peli:
                 print("Tietokone nostaa kortin")
             pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
             print(f"Nostettu kortti: {pelaaja.get_viimeinen_kortti()}")
+            pelaaja.kasi.sort()  # TODO tämä kuuluisi tehdä vain ei-tietokoneille
 
     def _hyvaksyta_nosto(self):
         """Metodi tarkastaa pelaajan oikeuden kortin nostoon.
@@ -282,6 +302,8 @@ class Peli:
         if self.kortti_nostettu_tietokone and pelaaja.tietokone:
             return False
 
+        self.feed.add_msg(f"{pelaaja.get_nimi()} nostaa kortin.")
+
         self.kortti_nostettu = True
         if pelaaja.tietokone:
             self.kortti_nostettu_tietokone = True
@@ -290,6 +312,7 @@ class Peli:
     def _passaa(self):
         pelaaja = self._get_vuorossaoleva_pelaaja()
         if self.kortti_nostettu or len(self.nostopakka) == 0:
+            self.feed.add_msg(f"{pelaaja.get_nimi()} passaa.")
             self.vuoro_pelattu = True
         else:
             print("Et voi passata!")
@@ -315,6 +338,8 @@ class Peli:
             pelaaja.pelaa_vuoro(kortti)
             self.poistopakka.lisaa_kortti(kortti)
             self.vuoro_pelattu = True
+
+            self.feed.add_msg(f"{pelaaja.get_nimi()} pelasi kortin {kortti}.")
 
             if pelaaja.tietokone:
                 print(f"Tietokone pelasi {kortti}")

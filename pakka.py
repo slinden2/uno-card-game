@@ -19,7 +19,7 @@ class Pakka:
 
     def __init__(self):
         self.korttipakka = []
-        self.varit = ["red", "yel", "gre", "blu"]
+        self.varit = Config.KORTTIVARIT
         self.luotu = False
         self.toimintakortit = {10: "ohitus",
                                11: "suunnanvaihto",
