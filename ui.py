@@ -421,16 +421,18 @@ class Kuvalabel(tk.Label):
         elif self.name == "kasi":
             self.pelaa_kortti()
 
-        if self.controller.peli.kierros_pelattu:
-            self.parent.master.parent.paivita_tilastoframe()
-
     def passaa(self):
         self.controller.peli.passaa()
+
         if self.controller.peli.vuoro_pelattu_tietokone:
             self.parent.paivita_pakat()
 
+        if self.controller.peli.kierros_pelattu:
+            self.parent.parent.paivita_tilastoframe()
+
     def nosta_kortti(self):
         self.controller.peli.nosta_kortti()
+
         if self.controller.peli.kortti_nostettu:
             self.parent.paivita_pakat()
 
@@ -438,12 +440,13 @@ class Kuvalabel(tk.Label):
         indeksi = self.winfo_name()[-1:]
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
         self.controller.peli.pelaa_kortti(indeksi)
+
         if self.controller.peli.vuoro_pelattu_tietokone:
             self.parent.master.paivita_pakat()
 
-        # peli nayttaa toimivan kahdella pelaajalla ja ilman toimintakortteja
+        if self.controller.peli.kierros_pelattu:
+            self.parent.master.paivita_pakat()
+            self.parent.master.parent.paivita_tilastoframe()
 
         # lisätään toiminnallisuutta siten, että kierrokset ja pelin
         # pisteytys toimii
-
-        # missä vaiheessa suoritetaan voitontarkistus?

@@ -144,15 +144,6 @@ class Peli:
 
         self.toimintakortin_pelannut_pelaaja = None
 
-        # pelaaja = self._get_vuorossaoleva_pelaaja()
-
-        # if self._tarkista_voitto():
-        #     self._laske_voittopisteet()
-        #     print(
-        #         f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
-        #     self._tuhoa_pelaajien_kadet()
-        #     self.kierros_pelattu = True
-
     def pelaa_kortti(self, kortti):
         """Tata metodia kutsutaan tiedostosta ui.py. Kun pelaaja valitsee
         kortin klikkaamalla sitä, kutsutaan tämä metodi.
@@ -162,8 +153,12 @@ class Peli:
         kortti = pelaaja.get_kasi()[kortti]
         self._pelaa_kortti(kortti)
 
+        self._suorita_voiton_tarkistus()
+        if self.kierros_pelattu:
+            return
+
         if self.vuoro_pelattu:
-            self.__()
+            self._siirra_vuoro_tietokoneelle()
 
     def nosta_kortti(self):
         self._nosta_kortti()
@@ -171,6 +166,7 @@ class Peli:
     def passaa(self):
         self.vuoro_pelattu_tietokone = False
         self._passaa()
+
         if self.vuoro_pelattu:
             self._siirra_vuoro_tietokoneelle()
 
@@ -179,6 +175,7 @@ class Peli:
 
         kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()
         print(f"Pelaajalta kysyttyva kortti on {kysyttava_kortti}.")
+
         if kysyttava_kortti.arvo >= 13:
             print(f"Jokeriväri on {self.jokerivari}.")
 
@@ -194,14 +191,8 @@ class Peli:
         self.vuoro_pelattu = False
         self.kortti_nostettu = False
         self.kortti_nostettu_tietokone = False
-        pelaaja = self._get_vuorossaoleva_pelaaja()
 
-        if self._tarkista_voitto():
-            self._laske_voittopisteet()
-            print(
-                f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
-            self._tuhoa_pelaajien_kadet()
-            self.kierros_pelattu = True
+        self._suorita_voiton_tarkistus()
 
         self._seuraava_pelaaja()
 
@@ -224,6 +215,15 @@ class Peli:
         print("Tietokoneen vuoro pelattu")  # TODO testaus
         print("===========")
         self._lopeta_vuoro()
+
+    def _suorita_voiton_tarkistus(self):
+        pelaaja = self._get_vuorossaoleva_pelaaja()
+        if self._tarkista_voitto():
+            self._laske_voittopisteet()
+            print(
+                f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
+            self._tuhoa_pelaajien_kadet()
+            self.kierros_pelattu = True
 
     def _pelaajan_syote(self):
         syote = ""
