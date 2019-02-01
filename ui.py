@@ -334,19 +334,10 @@ class Korttiframe(tk.Frame):
     def luo_widgetit(self):
 
         if self.controller.peli_kaynnissa:
+            pakkaframe = Pakkaframe(self, self.controller)
+            pakkaframe.grid(row=1, column=1, columnspan=2, sticky="nsew")
 
-            self.aseta_nostopakka()
-            self.aseta_poistopakan_kortti()
             self.aseta_aloituskadet()
-
-    def aseta_nostopakka(self):
-        kuva_label = self.lataa_kuva(self, nostopakka=True)
-        kuva_label.grid(row=1, column=1)
-
-    def aseta_poistopakan_kortti(self):
-        kortti = self.controller.peli.poistopakka.get_viimeinen_kortti()
-        kuva_label = self.lataa_kuva(self, kortti=kortti, poistopakka=True)
-        kuva_label.grid(row=1, column=2)
 
     def lataa_kuva(self, frame, kortti=None, nostopakka=False, poistopakka=False, oikea=False, yla=False):
         binding = False
@@ -433,6 +424,31 @@ class Korttiframe(tk.Frame):
         self.luo_widgetit()
 
 
+class Pakkaframe(tk.Frame):
+
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.master = parent
+        self.controller = controller
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
+        self.aseta_nostopakka()
+        self.aseta_poistopakan_kortti()
+
+    def aseta_nostopakka(self):
+        kuva_label = self.master.lataa_kuva(self, nostopakka=True)
+        kuva_label.grid(row=0, column=0)
+
+    def aseta_poistopakan_kortti(self):
+        kortti = self.controller.peli.poistopakka.get_viimeinen_kortti()
+        kuva_label = self.master.lataa_kuva(
+            self, kortti=kortti, poistopakka=True)
+        kuva_label.grid(row=0, column=1)
+
+
 class Kuvalabel(tk.Label):
 
     def __init__(self, parent, controller, binding=False, name="", **kwargs):
@@ -452,29 +468,8 @@ class Kuvalabel(tk.Label):
         elif self.name == "kasi":
             self.pelaa_kortti()
 
-    def passaa(self):
-        self.controller.peli.passaa()
-
-        if self.controller.peli.vuoro_pelattu_tietokone:
-            self.parent.paivita_pakat()
-            self.parent.parent.tilastoframe.paivita_feed()
-
-        if self.controller.peli.kierros_pelattu:
-            self.parent.parent.paivita_tilastoframe()
-
-    def nosta_kortti(self):
-        self.controller.peli.nosta_kortti()
-
-        if self.controller.peli.kortti_nostettu:
-            self.parent.parent.tilastoframe.paivita_feed()
-            self.parent.paivita_pakat()
-
-    def pelaa_kortti(self):
-        indeksi = self.winfo_name()[-1:]
-        indeksi = int(indeksi) - 1 if indeksi != "l" else 0
-        self.controller.peli.pelaa_kortti(indeksi)
-
-        if self.controller.peli.vuoro_pelattu_tietokone:
+        if self.controller.peli.vuoro_pelattu_tietokone or \
+            self.controller.peli.kortti_nostettu:
             self.parent.master.paivita_pakat()
             self.parent.master.parent.tilastoframe.paivita_feed()
 
@@ -482,9 +477,17 @@ class Kuvalabel(tk.Label):
             self.parent.master.paivita_pakat()
             self.parent.master.parent.paivita_tilastoframe()
 
-        # kierrokset toimii. tarkasta pisteytys (vaikuttaa ok)
+    def passaa(self):
+        self.controller.peli.passaa()
 
-        # vaihtuuko vuoro oikein kierroksen loppuessa?
+    def nosta_kortti(self):
+        self.controller.peli.nosta_kortti()
 
-        # uusi frame nosto- ja poistopakoille?
-        # helpottuisi kommunikointi framejen välillä
+    def pelaa_kortti(self):
+        indeksi = self.winfo_name()[-1:]
+        indeksi = int(indeksi) - 1 if indeksi != "l" else 0
+        self.controller.peli.pelaa_kortti(indeksi)
+
+
+        # Miten lopetetaan peli, kun voittopisteet ylitetään?
+

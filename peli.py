@@ -68,13 +68,13 @@ class Peli:
         self._jaa_aloituskortit()
         self.nostopakka.kaanna_pakka()
         self._aloituskortti_poistopakkaan()
-
+        print(self.vuorossa)
         if self.kierros > 1:
             self._maarita_aloittava_pelaaja()
+        print(self.vuorossa)
 
         self.toimintakortin_pelannut_pelaaja = None
 
-        print(self.vuorossa)
         if self.vuorossa != 0:
             self._pelaa_tietokoneiden_vuorot()
 
@@ -83,7 +83,7 @@ class Peli:
         #     pass
 
     def _maarita_aloittava_pelaaja(self):
-        if self.aloittaja < self.pelaajien_lkm:
+        if self.aloittaja < self.pelaajien_lkm - 1:
             self.aloittaja += 1
             self.vuorossa = self.aloittaja
         else:
@@ -149,18 +149,6 @@ class Peli:
         kädet nollataan."""
         for pelaaja in self.pelaajat:
             pelaaja.tuhoa_kasi()
-
-    # TODO yhdistetty pelaa_peli-metodiin
-    # def aloita_kierros(self):
-    #     """Yksittäinen kierros päättyy, kun jokin pelaajista
-    #     saa pelattua kätensä viimeisen kortin.
-    #     """
-    #     print("Uusi kierros alkaa")
-
-    #     if self.kierros > 1:
-    #         self._maarita_aloittava_pelaaja()
-
-    #     self.toimintakortin_pelannut_pelaaja = None
 
     def pelaa_kortti(self, kortti):
         """Tata metodia kutsutaan tiedostosta ui.py. Kun pelaaja valitsee
@@ -350,6 +338,7 @@ class Peli:
     def _hyvaksyta_pelattu_kortti(self, pelattu_kortti, nosto=False):
         """Tarkistaa, että onko pelattu kortti valitsema kortti pelattavissa.
         """
+        # return True  # TODO
         verrattava_kortti = self.poistopakka.get_viimeinen_kortti()
 
         if pelattu_kortti.vari == verrattava_kortti.vari or \
