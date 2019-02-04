@@ -20,6 +20,12 @@ class Peli:
         self.pelaajat = []
         self.nostopakka = Pakka()
         self.poistopakka = Pakka()
+        self.jokerivari = Config.ERIKOISVARI
+        self.feed = Feed(5)
+
+        self._alusta_pelimuuttujat()
+
+    def _alusta_pelimuuttujat(self):
         self.kierros = 1
         self.vuorossa = 0
         self.aloittaja = 0
@@ -29,8 +35,7 @@ class Peli:
         self.vuoro_pelattu = False
         self.vuoro_pelattu_tietokone = False
         self.kierros_pelattu = False
-        self.jokerivari = Config.ERIKOISVARI
-        self.feed = Feed(5)
+        self.peli_pelattu = False
 
         # Muuttujaa käytetään pelaajan voiton määrityksessä.
         # Jos pelaajan viimeinen kädessä oleva kortti on
@@ -54,33 +59,34 @@ class Peli:
     def luo_pelaaja(self, nimi, tietokone):
         self.pelaajat.append(Pelaaja(nimi, tietokone))
 
-    def alusta_peli(self):
+    def aloita_ensimmainen_peli(self):
         self.pelaajien_lkm = len(self.pelaajat)
         self.voittopisteet = Config.VOITTOPISTEET
         self.pelaa_peli()
 
+    def aloita_uusi_peli(self):
+        for pelaaja in self.pelaajat:
+            pelaaja.resetoi()
+        self._alusta_pelimuuttujat()
+        self.pelaa_peli()
+
     def pelaa_peli(self):
+        tilanne = "peli" if self.kierros == 1 else "kierros"
         self.feed.add_msg(
-            f"Uusi kierros alkaa. Kierroksen numero on {self.kierros}.")
+            f"Uusi {tilanne} alkaa. Kierroksen numero on {self.kierros}.")
         self.kierros_pelattu = False
         self.nostopakka.luo_pakka()
         self.nostopakka.sekoita()
         self._jaa_aloituskortit()
         self.nostopakka.kaanna_pakka()
         self._aloituskortti_poistopakkaan()
-        print(self.vuorossa)
         if self.kierros > 1:
             self._maarita_aloittava_pelaaja()
-        print(self.vuorossa)
 
         self.toimintakortin_pelannut_pelaaja = None
 
         if self.vuorossa != 0:
             self._pelaa_tietokoneiden_vuorot()
-
-        # if self._tarkista_voittopisteet():
-        #     # keksi jotain mika lopettaa pelin
-        #     pass
 
     def _maarita_aloittava_pelaaja(self):
         if self.aloittaja < self.pelaajien_lkm - 1:
@@ -197,28 +203,39 @@ class Peli:
         self.vuoro_pelattu = False
         self.kortti_nostettu = False
         self.kortti_nostettu_tietokone = False
-
-        self._suorita_voiton_tarkistus()
-
+        self.vuoro_pelattu_tietokone = False
+        voittaja = self._suorita_voiton_tarkistus()
         self._seuraava_pelaaja()
+        return voittaja
 
     def _pelaa_tietokoneiden_vuorot(self):
         kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()  # TODO
         print(f"Tietokoneelta kysyttyva kortti on {kysyttava_kortti}.")  # TODO
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        kasi = pelaaja.get_kasi()
-        random.shuffle(kasi)
-        self._nosta_kortti()
-        for kortti in kasi:
-            print(kortti)
-            self._pelaa_kortti(kortti)
-            if self.vuoro_pelattu_tietokone:
+
+        pelaavat_tietokoneet = [
+            tietokone for tietokone in self.pelaajat[self.vuorossa:]]
+
+        for pelaaja in pelaavat_tietokoneet:
+            print("vuorossa: {}".format(self.vuorossa))  # TODO
+            kasi = pelaaja.get_kasi()
+            random.shuffle(kasi)
+            self._nosta_kortti()
+            for kortti in kasi:
+                self._pelaa_kortti(kortti)
+                if self.vuoro_pelattu_tietokone:
+                    break
+            else:
+                self._passaa()
+
+            print("Tietokoneen vuoro pelattu")  # TODO testaus
+            print("===========")
+            voittaja = self._lopeta_vuoro()
+            if voittaja:
                 break
-        else:
-            self._passaa()
-        print("Tietokoneen vuoro pelattu")  # TODO testaus
-        print("===========")
-        self._lopeta_vuoro()
+
+        self.vuoro_pelattu_tietokone = True
+        self.vuoro_pelattu = False
+        self.kortti_nostettu = False
 
     def _suorita_voiton_tarkistus(self):
         pelaaja = self._get_vuorossaoleva_pelaaja()
@@ -231,6 +248,11 @@ class Peli:
                 f"Kierros {self.kierros} päättyi. Voittaja on {pelaaja.get_nimi()}.")
             self.kierros += 1
             self.kierros_pelattu = True
+
+            if self._tarkista_voittopisteet():
+                self.peli_pelattu = True
+
+            return pelaaja
 
     def _pelaajan_syote(self):
         syote = ""
@@ -264,7 +286,8 @@ class Peli:
                 print("Tietokone nostaa kortin")
             pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
             print(f"Nostettu kortti: {pelaaja.get_viimeinen_kortti()}")
-            pelaaja.kasi.sort()  # TODO tämä kuuluisi tehdä vain ei-tietokoneille
+            if not pelaaja.tietokone:
+                pelaaja.kasi.sort()
 
     def _hyvaksyta_nosto(self):
         """Metodi tarkastaa pelaajan oikeuden kortin nostoon.
@@ -338,7 +361,6 @@ class Peli:
     def _hyvaksyta_pelattu_kortti(self, pelattu_kortti, nosto=False):
         """Tarkistaa, että onko pelattu kortti valitsema kortti pelattavissa.
         """
-        # return True  # TODO
         verrattava_kortti = self.poistopakka.get_viimeinen_kortti()
 
         if pelattu_kortti.vari == verrattava_kortti.vari or \

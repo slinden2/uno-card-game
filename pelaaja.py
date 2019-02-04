@@ -65,5 +65,10 @@ class Pelaaja:
     def on_tietokone(self):
         return self.tietokone
 
+    def resetoi(self):
+        self.tuhoa_kasi()
+        self.pisteet = 0
+        self.voitot = 0
+
     def __str__(self):
         return f"Nimi: {self.nimi} - Käsi: {[str(kortti) for kortti in self.kasi]}"

@@ -207,7 +207,7 @@ class Pelaajaframe(tk.Frame):
         for _, pelaaja in pelaajat[1:]:
             self.controller.peli.luo_pelaaja(pelaaja.get(), True)
 
-        self.controller.peli.alusta_peli()
+        self.controller.peli.aloita_ensimmainen_peli()
         self.controller.peli_kaynnissa = True
         self.controller.nayta_frame(Peliframe)
 
@@ -218,21 +218,33 @@ class Peliframe(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        self.tilastoframe = Tilastoframe(self, self.controller)
-        self.tilastoframe.grid(row=0, column=0, sticky="nsew")
-
-        self.korttiframe = Korttiframe(self, self.controller)
-        self.korttiframe.grid(row=1, column=0, sticky="nsew")
+        self.luo_tilastoframe()
+        self.luo_korttiframe()
 
         self.rowconfigure(0, weight=2)
         self.rowconfigure(1, weight=20)
         self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
 
-    def paivita_tilastoframe(self):
-        self.tilastoframe.destroy()
+    def luo_tilastoframe(self):
         self.tilastoframe = Tilastoframe(self, self.controller)
         self.tilastoframe.grid(row=0, column=0, sticky="nsew")
+
+    def luo_korttiframe(self):
+        self.korttiframe = Korttiframe(self, self.controller)
+        self.korttiframe.grid(row=1, column=0, sticky="nsew")
+
+    def paivita_tilastoframe(self):
+        self.tilastoframe.destroy()
+        self.luo_tilastoframe()
+
+    def paivita_korttiframe(self):
+        self.korttiframe.destroy()
+        self.luo_korttiframe()
+
+    def paivita_peliframe(self):
+        self.paivita_tilastoframe()
+        self.paivita_korttiframe()
 
 
 class Tilastoframe(tk.Frame):
@@ -290,9 +302,17 @@ class Tilastoframe(tk.Frame):
             self.otsikko_label.pack()
 
     def luo_hallintanapit(self):
-        kierros_nappi = ttk.Button(
-            self, text="Seuraava kierros", command=self.aloita_seuraava_kierros)
-        kierros_nappi.grid(row=0, column=2, sticky="ew")
+        if not self.controller.peli.peli_pelattu:
+            tila = tk.NORMAL
+            if not self.controller.peli.kierros_pelattu:
+                tila = tk.DISABLED
+            kierros_nappi = ttk.Button(
+                self, text="Seuraava kierros", command=self.aloita_seuraava_kierros, state=tila)
+            kierros_nappi.grid(row=0, column=2, sticky="ew")
+        else:
+            uusi_peli_nappi = ttk.Button(
+                self, text="Uusi peli", command=self.aloita_uusi_peli)
+            uusi_peli_nappi.grid(row=0, column=2, sticky="ew")
 
         lopeta_nappi = ttk.Button(
             self, text="Lopeta peli", command=self.lopeta_peli)
@@ -300,8 +320,13 @@ class Tilastoframe(tk.Frame):
 
     def aloita_seuraava_kierros(self):
         self.controller.peli.pelaa_peli()
-        self.paivita_feed()
+        self.parent.paivita_tilastoframe()
         self.parent.korttiframe.paivita_pakat()
+
+    def aloita_uusi_peli(self):
+        self.controller.peli.aloita_uusi_peli()
+        self.controller.peli_kaynnissa = True
+        self.parent.paivita_peliframe()
 
     def lopeta_peli(self):
         self.controller.peli = Peli()
@@ -468,12 +493,18 @@ class Kuvalabel(tk.Label):
         elif self.name == "kasi":
             self.pelaa_kortti()
 
-        if self.controller.peli.vuoro_pelattu_tietokone or \
-            self.controller.peli.kortti_nostettu:
+        if self.controller.peli.peli_pelattu:
+            self.parent.master.parent.paivita_tilastoframe()
             self.parent.master.paivita_pakat()
+            self.controller.peli_kaynnissa = False
+
+        elif self.controller.peli.vuoro_pelattu_tietokone or \
+                self.controller.peli.kortti_nostettu:
+            self.parent.master.paivita_pakat()
+            self.parent.master.parent.paivita_tilastoframe()
             self.parent.master.parent.tilastoframe.paivita_feed()
 
-        if self.controller.peli.kierros_pelattu:
+        elif self.controller.peli.kierros_pelattu:
             self.parent.master.paivita_pakat()
             self.parent.master.parent.paivita_tilastoframe()
 
@@ -488,6 +519,5 @@ class Kuvalabel(tk.Label):
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
         self.controller.peli.pelaa_kortti(indeksi)
 
-
-        # Miten lopetetaan peli, kun voittopisteet ylitetään?
-
+        # Peli näyttää toimivan useammalakin pelaajalla.
+        # Puuttuu toimintakortit
