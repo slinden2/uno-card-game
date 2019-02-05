@@ -55,14 +55,15 @@ class Pakka:
             -1 nosta 2 -kortti (arvo 12)
         """
         for vari in self.varit:
-            # TODO muokattu testausta varten. Oikea arvo 13.
-            for i in range(1, 10):
+            # TODO muokattu testausta varten. Oikea arvo 1, 13.
+            for i in range(1, 11):
                 if i < 10:
                     self.korttipakka.append(
                         Kortti(i, vari, i, self.toimintakortit.get(i, None)))
                 else:
-                    self.korttipakka.append(
-                        Kortti(i, vari, 20, self.toimintakortit.get(i, None)))
+                    for _ in range(0, 1):  # TODO poista for loop
+                        self.korttipakka.append(
+                            Kortti(i, vari, 20, self.toimintakortit.get(i, None)))
 
     def _luo_erikoiskortit(self):
         """Luo kahdeksan toimintakorttia:

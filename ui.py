@@ -294,12 +294,28 @@ class Tilastoframe(tk.Frame):
         self.feed_frame = ttk.LabelFrame(self, text="Feed")
         self.feed_frame.grid(row=0, column=1, rowspan=2, padx=5, sticky="nsew")
 
+        self.feed_frame.columnconfigure(0, weight=20)
+        self.feed_frame.columnconfigure(1, weight=1)
+        self.feed_frame.rowconfigure(0, weight=1)
+
+        self.pystyscroll = ttk.Scrollbar(self.feed_frame)
+        self.pystyscroll.grid(row=0, column=1, sticky="nsew")
+
+        self.feed_box = tk.Listbox(self.feed_frame, activestyle="dotbox", height=7, yscrollcommand=self.pystyscroll.set)
+        self.feed_box.grid(row=0, column=0, sticky="nsew")
+        self.pystyscroll["command"] = self.feed_box.yview
+
         for timestamp in self.controller.peli.feed.messages:
             msg = " - ".join(timestamp)
-            text = tk.StringVar()
-            text.set(msg)
-            self.otsikko_label = tk.Label(self.feed_frame, textvariable=text)
-            self.otsikko_label.pack()
+            self.feed_box.insert(tk.END, msg)
+            self.feed_box.yview(tk.END)
+
+        # for timestamp in self.controller.peli.feed.messages:
+        #     msg = " - ".join(timestamp)
+        #     text = tk.StringVar()
+        #     text.set(msg)
+        #     self.otsikko_label = tk.Label(self.feed_frame, textvariable=text)
+        #     self.otsikko_label.pack()
 
     def luo_hallintanapit(self):
         if not self.controller.peli.peli_pelattu:
@@ -502,9 +518,13 @@ class Kuvalabel(tk.Label):
                 self.controller.peli.kortti_nostettu:
             self.parent.master.paivita_pakat()
             self.parent.master.parent.paivita_tilastoframe()
-            self.parent.master.parent.tilastoframe.paivita_feed()
 
         elif self.controller.peli.kierros_pelattu:
+            self.parent.master.paivita_pakat()
+            self.parent.master.parent.paivita_tilastoframe()
+
+        while self.controller.peli.ohitus and not self.controller.peli.kierros_pelattu:
+            self.controller.peli.ohita_pelaajan_vuoro()
             self.parent.master.paivita_pakat()
             self.parent.master.parent.paivita_tilastoframe()
 
@@ -519,5 +539,8 @@ class Kuvalabel(tk.Label):
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
         self.controller.peli.pelaa_kortti(indeksi)
 
-        # Peli näyttää toimivan useammalakin pelaajalla.
-        # Puuttuu toimintakortit
+        # Peli vaikuttaa toimivan yhden toimintakortin kanssa, mutta
+        # kierrokset ei lopu oikein.
+
+        # Muuta feedi scrollattavaksi tekstilaatikoksi, jotta
+        # vianetsintä helpottuu

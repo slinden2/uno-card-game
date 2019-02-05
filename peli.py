@@ -21,7 +21,7 @@ class Peli:
         self.nostopakka = Pakka()
         self.poistopakka = Pakka()
         self.jokerivari = Config.ERIKOISVARI
-        self.feed = Feed(5)
+        self.feed = Feed(50)
 
         self._alusta_pelimuuttujat()
 
@@ -36,6 +36,7 @@ class Peli:
         self.vuoro_pelattu_tietokone = False
         self.kierros_pelattu = False
         self.peli_pelattu = False
+        self.ohitus = False
 
         # Muuttujaa käytetään pelaajan voiton määrityksessä.
         # Jos pelaajan viimeinen kädessä oleva kortti on
@@ -182,6 +183,12 @@ class Peli:
         if self.vuoro_pelattu:
             self._siirra_vuoro_tietokoneelle()
 
+    def ohita_pelaajan_vuoro(self):
+        self.vuoro_pelattu_tietokone = False
+        self.ohitus = False
+        self.feed.add_msg(f"Pelaajan 1 vuoro ohitetaan.")
+        self._siirra_vuoro_tietokoneelle()
+
     def _alusta_vuoro(self):
         self.vuoro_pelattu_tietokone = False
 
@@ -199,7 +206,6 @@ class Peli:
         self._pelaa_tietokoneiden_vuorot()
 
     def _lopeta_vuoro(self):
-
         self.vuoro_pelattu = False
         self.kortti_nostettu = False
         self.kortti_nostettu_tietokone = False
@@ -213,14 +219,22 @@ class Peli:
         print(f"Tietokoneelta kysyttyva kortti on {kysyttava_kortti}.")  # TODO
 
         pelaavat_tietokoneet = [
-            tietokone for tietokone in self.pelaajat[self.vuorossa:]]
+            tietokone for tietokone in self.pelaajat[self.vuorossa:] if tietokone.tietokone]
 
         for pelaaja in pelaavat_tietokoneet:
+            if self.ohitus:
+                self._seuraava_pelaaja()
+                self.ohitus = False
+                self.feed.add_msg(
+                    f"Pelaajan {pelaaja.get_nimi()} vuoro ohitetaan.")
+                print(f"Pelaajan {pelaaja.get_nimi()} vuoro ohitetaan")
+                continue
             print("vuorossa: {}".format(self.vuorossa))  # TODO
             kasi = pelaaja.get_kasi()
             random.shuffle(kasi)
             self._nosta_kortti()
             for kortti in kasi:
+                print(kortti)  # TODO
                 self._pelaa_kortti(kortti)
                 if self.vuoro_pelattu_tietokone:
                     break
@@ -228,6 +242,7 @@ class Peli:
                 self._passaa()
 
             print("Tietokoneen vuoro pelattu")  # TODO testaus
+            print(pelaaja.get_kasi())
             print("===========")
             voittaja = self._lopeta_vuoro()
             if voittaja:
@@ -335,6 +350,7 @@ class Peli:
         """
         pelaaja = self._get_vuorossaoleva_pelaaja()
         if self._hyvaksyta_pelattu_kortti(kortti):
+            print(pelaaja.get_nimi(), kortti)  # TODO
 
             if self.jokerivari != Config.ERIKOISVARI:
                 self.jokerivari = Config.ERIKOISVARI
@@ -377,7 +393,8 @@ class Peli:
         """
         # ohitus
         if pelattu_kortti.arvo == 10:
-            self._seuraava_pelaaja()
+            self.ohitus = True
+            # self._seuraava_pelaaja()  # TODO
 
         # suunnanvaihto
         elif pelattu_kortti.arvo == 11:
