@@ -43,6 +43,7 @@ class Peli:
         # toimintakortti, niin kun se pelataan, saattaa vuorossa
         # oleva pelaaja vaihtua. Tässä tapauksessa ilman tätä
         # apumuuttujaa voitontarkistus ei toimi oikein.
+        # TODO Ehkä turha muuttuja.
         self.toimintakortin_pelannut_pelaaja = None
 
     @classmethod
@@ -401,12 +402,13 @@ class Peli:
 
         # nosta 2
         elif pelattu_kortti.arvo == 12:
+            self.ohitus = True  # TODO
             seuraava_pelaaja = self._get_seuraava_pelaaja()
 
             for i in range(0, 2):
                 seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
 
-            self._seuraava_pelaaja()
+            # self._seuraava_pelaaja()  # TODO
 
         elif pelattu_kortti.arvo == 13 or pelattu_kortti.arvo == 14:
             self._kasittele_jokerikortti(pelattu_kortti)
