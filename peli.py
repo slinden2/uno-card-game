@@ -20,6 +20,7 @@ class Peli:
         self.pelaajat = []
         self.nostopakka = Pakka()
         self.poistopakka = Pakka()
+        self.varit = Config.KORTTIVARIT
         self.jokerivari = Config.ERIKOISVARI
         self.feed = Feed(50)
 
@@ -37,6 +38,7 @@ class Peli:
         self.kierros_pelattu = False
         self.peli_pelattu = False
         self.ohitus = False
+        self.kysytaan_varia = False
 
         # Muuttujaa käytetään pelaajan voiton määrityksessä.
         # Jos pelaajan viimeinen kädessä oleva kortti on
@@ -162,10 +164,13 @@ class Peli:
         """Tata metodia kutsutaan tiedostosta ui.py. Kun pelaaja valitsee
         kortin klikkaamalla sitä, kutsutaan tämä metodi.
         """
-        self._alusta_vuoro()
+        self.vuoro_pelattu_tietokone = False
         pelaaja = self._get_vuorossaoleva_pelaaja()
         kortti = pelaaja.get_kasi()[kortti]
         self._pelaa_kortti(kortti)
+
+        if self.kysytaan_varia:
+            pass
 
         self._suorita_voiton_tarkistus(pelaaja)
         if self.kierros_pelattu:
@@ -190,25 +195,32 @@ class Peli:
         self.feed.add_msg(f"Pelaajan 1 vuoro ohitetaan.")
         self._siirra_vuoro_tietokoneelle()
 
-    def _alusta_vuoro(self):
-        self.vuoro_pelattu_tietokone = False
+    def vastaanota_vari(self, vari):
+        # kutsutaan guista
+        self.kysytaan_varia = False
+        self.vuoro_pelattu = True
+        self.jokerivari = vari
+        self.feed.add_msg(f"Jokerivari on {vari}.")
+        self._siirra_vuoro_tietokoneelle()
 
-        kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()
-        print(f"Pelaajalta kysyttyva kortti on {kysyttava_kortti}.")
+    # TODO poista tama metodi
+    # def _alusta_vuoro(self):
+    #     self.vuoro_pelattu_tietokone = False
 
-        if kysyttava_kortti.arvo >= 13:
-            print(f"Jokeriväri on {self.jokerivari}.")
+    #     kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()
+    #     print(f"Pelaajalta kysyttyva kortti on {kysyttava_kortti}.")
 
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        print(f"Vuorossa on {pelaaja.get_nimi()}.")
+    #     if kysyttava_kortti.arvo >= 13:
+    #         print(f"Jokeriväri on {self.jokerivari}.")
+
+    #     pelaaja = self._get_vuorossaoleva_pelaaja()
+    #     print(f"Vuorossa on {pelaaja.get_nimi()}.")
 
     def _siirra_vuoro_tietokoneelle(self):
         self._seuraava_pelaaja()
         self._pelaa_tietokoneiden_vuorot()
 
     def _lopeta_vuoro(self, pelaaja):
-        self.vuoro_pelattu = False
-        self.kortti_nostettu = False
         self.kortti_nostettu_tietokone = False
         self.vuoro_pelattu_tietokone = False
         voittaja = self._suorita_voiton_tarkistus(pelaaja)
@@ -239,6 +251,10 @@ class Peli:
             for kortti in kasi:
                 print(kortti)  # TODO
                 self._pelaa_kortti(kortti)
+                if self.kysytaan_varia:
+                    self.jokerivari = random.choice(self.varit)
+                    self.feed.add_msg(f"Jokerivari on {self.jokerivari}.")
+                    self.kysytaan_varia = False
                 if self.vuoro_pelattu_tietokone:
                     break
             else:
@@ -366,7 +382,9 @@ class Peli:
 
             pelaaja.pelaa_vuoro(kortti)
             self.poistopakka.lisaa_kortti(kortti)
-            self.vuoro_pelattu = True
+            
+            if not self.kysytaan_varia:
+                self.vuoro_pelattu = True
 
             self.feed.add_msg(f"{pelaaja.get_nimi()} pelasi kortin {kortti}.")
 
@@ -381,10 +399,11 @@ class Peli:
         """
         verrattava_kortti = self.poistopakka.get_viimeinen_kortti()
 
-        if pelattu_kortti.vari == verrattava_kortti.vari or \
-                pelattu_kortti.arvo == verrattava_kortti.arvo or \
-                pelattu_kortti.vari == Config.ERIKOISVARI or \
-                pelattu_kortti.vari == self.jokerivari:
+        # TODO tee tarkastusmetodit korttiluokkaan
+        if (pelattu_kortti.vari == verrattava_kortti.vari or
+            pelattu_kortti.arvo == verrattava_kortti.arvo or
+            pelattu_kortti.vari == Config.ERIKOISVARI or
+            pelattu_kortti.vari == self.jokerivari):
             return True
 
         return False
@@ -416,17 +435,17 @@ class Peli:
             self._kasittele_jokerikortti(pelattu_kortti)
 
     def _kasittele_jokerikortti(self, pelattu_kortti):
-        varit = self.nostopakka.get_varit()
-        varivalinta = {str(i): vari for i, vari in enumerate(varit, start=1)}
+        self.kysytaan_varia = True
+        # varivalinta = {str(i): vari for i, vari in enumerate(self.varit, start=1)}
 
-        for i, vari in varivalinta.items():
-            print(f"    {i:>2} - {vari}")
+        # for i, vari in varivalinta.items():
+        #     print(f"    {i:>2} - {vari}")
 
-        syote = ""
-        while syote not in varivalinta:
-            syote = input("Mitä väriä kysytään? ")
+        # syote = ""
+        # while syote not in varivalinta:
+        #     syote = input("Mitä väriä kysytään? ")
 
-        self.jokerivari = varivalinta[syote]
+        # self.jokerivari = varivalinta[syote]
 
         if pelattu_kortti.arvo == 14:
             seuraava_pelaaja = self._get_seuraava_pelaaja()
@@ -435,6 +454,27 @@ class Peli:
                 seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
 
             self._seuraava_pelaaja()
+
+    # def _kasittele_jokerikortti(self, pelattu_kortti):
+    #     varit = self.nostopakka.get_varit()
+    #     varivalinta = {str(i): vari for i, vari in enumerate(varit, start=1)}
+
+    #     for i, vari in varivalinta.items():
+    #         print(f"    {i:>2} - {vari}")
+
+    #     syote = ""
+    #     while syote not in varivalinta:
+    #         syote = input("Mitä väriä kysytään? ")
+
+    #     self.jokerivari = varivalinta[syote]
+
+    #     if pelattu_kortti.arvo == 14:
+    #         seuraava_pelaaja = self._get_seuraava_pelaaja()
+
+    #         for _ in range(0, 4):
+    #             seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
+
+    #         self._seuraava_pelaaja()
 
     def _vaihda_pelisuunta(self):
         self.pelisuunta *= -1

@@ -74,7 +74,7 @@ class Aloitusframe(tk.Frame):
 
         nappi3 = ttk.Button(self,
                             text="Lopeta",
-                            command=lambda: controller.quit())
+                            command=controller.quit)
         nappi3.grid(row=1, column=2, sticky="nsew")
 
         self.rowconfigure(0, weight=1)
@@ -355,7 +355,7 @@ class Tilastoframe(tk.Frame):
     def aloita_seuraava_kierros(self):
         self.controller.peli.pelaa_peli()
         self.parent.paivita_tilastoframe()
-        self.parent.korttiframe.paivita_pakat()
+        self.parent.paivita_korttiframe()
 
     def aloita_uusi_peli(self):
         self.controller.peli.aloita_uusi_peli()
@@ -383,12 +383,17 @@ class Korttiframe(tk.Frame):
         self.rowconfigure(0, weight=11)
         self.rowconfigure(1, weight=17)
         self.rowconfigure(2, weight=11)
+        self.rowconfigure(3, weight=1)
         self.columnconfigure(0, weight=10)
         self.columnconfigure(1, weight=15)
         self.columnconfigure(2, weight=15)
         self.columnconfigure(3, weight=10)
 
         self.luo_widgetit()
+
+        if (self.controller.peli.kysytaan_varia and
+            self.controller.peli.vuorossa == 0):
+            self.kysy_varia()
 
     def luo_widgetit(self):
 
@@ -421,8 +426,11 @@ class Korttiframe(tk.Frame):
             kuva = tk.PhotoImage(file=kortti.get_image())
             binding = True
             name = "kasi" if not poistopakka else "poistopakka"
-        kuva_label = Kuvalabel(frame, self.controller,
-                               image=kuva, binding=binding, name=name)
+        kuva_label = Kuvalabel(frame,
+                               self.controller,
+                               image=kuva,
+                               binding=binding,
+                               name=name)
         kuva_label.image = kuva
         return kuva_label
 
@@ -455,7 +463,7 @@ class Korttiframe(tk.Frame):
                 frame = tk.Frame(self, borderwidth=1, pady=10)
 
             if i == 0:
-                frame.grid(row=2, column=1, columnspan=2, sticky="nsew")
+                frame.grid(row=3, column=1, columnspan=2, sticky="nsew")
             elif i == 1:
                 frame.grid(row=1, column=0, sticky="nsew")
             elif i == 2:
@@ -484,10 +492,28 @@ class Korttiframe(tk.Frame):
             else:
                 kuva.place(x=0, y=i*15, anchor="nw")
 
-    def paivita_pakat(self):
-        for child in self.winfo_children():
-            child.destroy()
-        self.luo_widgetit()
+    def kysy_varia(self):
+        vari_frame = tk.Frame(self)
+        vari_frame.grid(row=2, column=1, columnspan=2, sticky="ew")
+        
+        vari_label = ttk.Label(vari_frame, text="Kysyttävä väri: ")
+        vari_label.grid(row=0, column=0)
+        vari_label.rowconfigure(0, weight=1)
+        vari_label.columnconfigure(0, weight=1)
+
+        for i, vari in enumerate(self.controller.peli.varit, start=1):
+            # lambda vari=vari tallentaa vari-muuttujan arvon eri iterointikierroksilta
+            # jos vari=varia ei kayteta, niin metodi kutsutaan aina for-loopin
+            # viimeisen kierroksen arvolla
+            nappi = ttk.Button(vari_frame,
+                               text=vari,
+                               command=lambda vari=vari: self.kasittele_vari(vari))
+            nappi.grid(row=0, column=i)
+
+    def kasittele_vari(self, vari):
+        self.controller.peli.vastaanota_vari(vari)
+        self.parent.paivita_tilastoframe()
+        self.parent.paivita_korttiframe()
 
 
 class Pakkaframe(tk.Frame):
@@ -523,7 +549,8 @@ class Kuvalabel(tk.Label):
         self.controller = controller
         self.name = name
 
-        if binding:
+        # varivalinnan aikana disabloidaan muut komennot
+        if binding and not self.controller.peli.kysytaan_varia:
             self.bind("<Button-1>", self.valitse_toiminto)
 
     def valitse_toiminto(self, event):
@@ -536,17 +563,16 @@ class Kuvalabel(tk.Label):
 
         if self.controller.peli.peli_pelattu:
             self.parent.master.parent.paivita_tilastoframe()
-            self.parent.master.paivita_pakat()
+            self.parent.master.parent.paivita_korttiframe()
             self.controller.peli_kaynnissa = False
 
-        elif self.controller.peli.vuoro_pelattu_tietokone or \
-                self.controller.peli.kortti_nostettu:
-            self.parent.master.paivita_pakat()
+        elif (self.controller.peli.vuoro_pelattu_tietokone or
+              self.controller.peli.kortti_nostettu or
+              self.controller.peli.kierros_pelattu or
+              self.controller.peli.kysytaan_varia):
+            self.parent.master.parent.paivita_korttiframe()
             self.parent.master.parent.paivita_tilastoframe()
 
-        elif self.controller.peli.kierros_pelattu:
-            self.parent.master.paivita_pakat()
-            self.parent.master.parent.paivita_tilastoframe()
 
         # while loopia tarvitaan erityisesti kaksinpelissä, jos
         # tietokone pelaa enemmän kuin yhden vuoronskippauskortin
@@ -554,7 +580,7 @@ class Kuvalabel(tk.Label):
         while (self.controller.peli.ohitus and not
                self.controller.peli.kierros_pelattu):
             self.controller.peli.ohita_pelaajan_vuoro()
-            self.parent.master.paivita_pakat()
+            self.parent.master.parent.paivita_korttiframe()
             self.parent.master.parent.paivita_tilastoframe()
 
     def passaa(self):
@@ -568,4 +594,4 @@ class Kuvalabel(tk.Label):
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
         self.controller.peli.pelaa_kortti(indeksi)
 
-        # Miten toteutetaan jokerivärin valinta?
+        # Puuttuu ainoistaan viimeinen toimintakortti

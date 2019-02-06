@@ -27,12 +27,6 @@ class Pakka:
                                13: "jokeri",
                                14: "jokeri + 4"}
 
-    # TODO apumetodi korttien testamiseen
-    # def luo_pakka(self):
-    #     for i in range(0, 50):
-    #         self.korttipakka.append(Kortti(0, "blu", 0))
-    #     self.luotu = True
-
     def luo_pakka(self):
         if self.luotu:
             self.korttipakka[:] = []
@@ -40,7 +34,7 @@ class Pakka:
         self._luo_nollakortit()
         self._luo_varikortit()
         self._luo_varikortit()
-        # self._luo_erikoiskortit()  # TODO testausta varten
+        self._luo_erikoiskortit()
         self.luotu = True
 
     def _luo_nollakortit(self):
