@@ -166,7 +166,7 @@ class Peli:
         kortti = pelaaja.get_kasi()[kortti]
         self._pelaa_kortti(kortti)
 
-        self._suorita_voiton_tarkistus()
+        self._suorita_voiton_tarkistus(pelaaja)
         if self.kierros_pelattu:
             return
 
@@ -205,12 +205,12 @@ class Peli:
         self._seuraava_pelaaja()
         self._pelaa_tietokoneiden_vuorot()
 
-    def _lopeta_vuoro(self):
+    def _lopeta_vuoro(self, pelaaja):
         self.vuoro_pelattu = False
         self.kortti_nostettu = False
         self.kortti_nostettu_tietokone = False
         self.vuoro_pelattu_tietokone = False
-        voittaja = self._suorita_voiton_tarkistus()
+        voittaja = self._suorita_voiton_tarkistus(pelaaja)
         self._seuraava_pelaaja()
         return voittaja
 
@@ -244,7 +244,7 @@ class Peli:
             print("Tietokoneen vuoro pelattu")  # TODO testaus
             print(pelaaja.get_kasi())
             print("===========")
-            voittaja = self._lopeta_vuoro()
+            voittaja = self._lopeta_vuoro(pelaaja)
             if voittaja:
                 break
 
@@ -252,9 +252,8 @@ class Peli:
         self.vuoro_pelattu = False
         self.kortti_nostettu = False
 
-    def _suorita_voiton_tarkistus(self):
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        if self._tarkista_voitto():
+    def _suorita_voiton_tarkistus(self, pelaaja):
+        if self._tarkista_voitto(pelaaja):
             self._laske_voittopisteet()
             print(
                 f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
@@ -436,14 +435,9 @@ class Peli:
     def _vaihda_pelisuunta(self):
         self.pelisuunta *= -1
 
-    def _tarkista_voitto(self):
+    def _tarkista_voitto(self, pelaaja):
         """Tarkistaa, että jääkö vuoron pelanneen pelaajan käteen
         kortteja. Jos käsi on tyhjä, pelaaja voittaa."""
-        if not self.toimintakortin_pelannut_pelaaja:
-            pelaaja = self._get_vuorossaoleva_pelaaja()
-        else:
-            pelaaja = self.toimintakortin_pelannut_pelaaja
-
         if len(pelaaja.get_kasi()) == 0:
             pelaaja.voittaa()
             return True
