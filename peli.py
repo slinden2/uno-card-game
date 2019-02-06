@@ -219,10 +219,12 @@ class Peli:
         kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()  # TODO
         print(f"Tietokoneelta kysyttyva kortti on {kysyttava_kortti}.")  # TODO
 
-        pelaavat_tietokoneet = [
-            tietokone for tietokone in self.pelaajat[self.vuorossa:] if tietokone.tietokone]
+        # pelaavat_tietokoneet = [
+        #     tietokone for tietokone in self.pelaajat[self.vuorossa:] if tietokone.tietokone]
 
-        for pelaaja in pelaavat_tietokoneet:
+        # for pelaaja in pelaavat_tietokoneet:
+        while self.vuorossa != 0:
+            pelaaja = self._get_vuorossaoleva_pelaaja()
             if self.ohitus:
                 self._seuraava_pelaaja()
                 self.ohitus = False

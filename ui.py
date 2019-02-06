@@ -568,4 +568,4 @@ class Kuvalabel(tk.Label):
         indeksi = int(indeksi) - 1 if indeksi != "l" else 0
         self.controller.peli.pelaa_kortti(indeksi)
 
-        # Miten toteuttaa suunnanvaihto?
+        # Miten toteutetaan jokerivärin valinta?
