@@ -77,7 +77,7 @@ class Pakka:
         return self.varit
 
     def jaa_kortti(self):
-        if len(self.korttipakka) > 1:
+        if len(self.korttipakka) >= 1:
             return self.korttipakka.pop(0)
         else:
             print("Pakassa ei ole kortteja!")
@@ -91,6 +91,9 @@ class Pakka:
 
     def get_viimeinen_kortti(self):
         return self.korttipakka[-1]
+
+    def on_tyhja(self):
+        return len(self) == 0
 
     def __len__(self):
         return len(self.korttipakka)
