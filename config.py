@@ -5,6 +5,8 @@ class Config:
     TAUSTAVARI = 'green'
     PELAAJA_LKM = 2
     VOITTOPISTEET = 500
+    ICON = "cards/icon.ico"
+    LOGO = "cards/logo.png"
     KORTIN_TAKA_NORMAALI = "cards/back.png"
     KORTIN_TAKA_VASEN = "cards/back_vert_left.png"
     KORTIN_TAKA_OIKEA = "cards/back_vert_right.png"

@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.font as tkFont
 from tkinter import ttk
 from peli import Peli
 from config import Config
@@ -12,14 +13,15 @@ class UnoCardGame(tk.Tk):
         self.geometry("1024x768+16+100")
         self.configure(background="green")
         self.resizable(width=False, height=False)
+        self.iconbitmap(Config.ICON)
 
         tk.Tk.wm_title(self, "UNO Card Game")
 
-        self.paaikkuna = tk.Frame(self)
-        self.paaikkuna.pack(side="top", fill="both", expand=True)
+        self.main_window = tk.Frame(self)
+        self.main_window.pack(side="top", fill="both", expand=True)
 
-        self.paaikkuna.rowconfigure(0, weight=1)
-        self.paaikkuna.columnconfigure(0, weight=1)
+        self.main_window.rowconfigure(0, weight=1)
+        self.main_window.columnconfigure(0, weight=1)
 
         self.peli = Peli()
         self.peli_kaynnissa = False
@@ -31,7 +33,7 @@ class UnoCardGame(tk.Tk):
     def luo_framet(self):
         self.framet = {}
         for F in (Aloitusframe, Pelaajaframe, Asetusframe, Peliframe):
-            frame = F(self.paaikkuna, self)
+            frame = F(self.main_window, self)
             self.framet[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
@@ -49,7 +51,7 @@ class UnoCardGame(tk.Tk):
 
     def paivita_frame(self, frame):
         self.framet[frame].destroy()
-        frame1 = frame(self.paaikkuna, self)
+        frame1 = frame(self.main_window, self)
         self.framet[frame] = frame1
         frame1.grid(row=0, column=0, sticky="nsew")
 
@@ -58,29 +60,43 @@ class Aloitusframe(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
-
-        label = ttk.Label(self, text="UNO Card Game")
-        label.grid(row=0, column=0, columnspan=3, sticky="nsew")
-
-        nappi = ttk.Button(self,
-                           text="Pelaajaframeen",
-                           command=lambda: controller.nayta_frame(Pelaajaframe))
-        nappi.grid(row=1, column=0, sticky="nsew")
-
-        nappi2 = ttk.Button(self,
-                            text="Asetukset",
-                            command=lambda: controller.nayta_frame(Asetusframe))
-        nappi2.grid(row=1, column=1, sticky="nsew")
-
-        nappi3 = ttk.Button(self,
-                            text="Lopeta",
-                            command=controller.quit)
-        nappi3.grid(row=1, column=2, sticky="nsew")
+        self.controller = controller
 
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
+        self.rowconfigure(2, weight=5)
+        self.rowconfigure(3, weight=5)
+        self.rowconfigure(4, weight=5)
         self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
+
+        self.set_logo()
+        self.set_title()
+        self.create_buttons()
+
+    def set_logo(self):
+        logo = tk.PhotoImage(file=Config.LOGO)
+        logo_label = tk.Label(self, image=logo)
+        logo_label.image = logo
+
+        logo_label.grid(row=0, column=0)
+
+    def set_title(self):
+        font = tkFont.Font(family="Helvetica", size=50, weight="bold")
+
+        label = tk.Label(self, text="CARD GAME", font=font)
+        label.grid(row=1, column=0, sticky="ew")
+
+    def create_buttons(self):
+        methods = {"Play": lambda: self.controller.nayta_frame(Pelaajaframe),
+                   "Settings": lambda: self.controller.nayta_frame(Asetusframe),
+                   "Quit": self.controller.quit}
+
+        for i, (text, command) in enumerate(methods.items(), start=2):
+            nappi = ttk.Button(self,
+                            text=text,
+                            command=command,
+                            width=30)
+            nappi.grid(row=i, column=0, sticky="ns")
 
 
 class Asetusframe(tk.Frame):

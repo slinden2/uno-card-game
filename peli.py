@@ -376,11 +376,10 @@ class Peli:
         """
         verrattava_kortti = self.poistopakka.get_viimeinen_kortti()
 
-        # TODO tee tarkastusmetodit korttiluokkaan
-        if (pelattu_kortti.vari == verrattava_kortti.vari or
-            pelattu_kortti.arvo == verrattava_kortti.arvo or
-            pelattu_kortti.vari == Config.ERIKOISVARI or
-                pelattu_kortti.vari == self.jokerivari):
+        if (pelattu_kortti.compare_color(verrattava_kortti) or
+                pelattu_kortti.compare_value(verrattava_kortti) or
+                pelattu_kortti.compare_to_wildcard(self.jokerivari) or
+                pelattu_kortti.is_wildcard()):
             return True
 
         return False
@@ -417,27 +416,6 @@ class Peli:
 
             for _ in range(0, 4):
                 seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
-
-    # def _kasittele_jokerikortti(self, pelattu_kortti):
-    #     varit = self.nostopakka.get_varit()
-    #     varivalinta = {str(i): vari for i, vari in enumerate(varit, start=1)}
-
-    #     for i, vari in varivalinta.items():
-    #         print(f"    {i:>2} - {vari}")
-
-    #     syote = ""
-    #     while syote not in varivalinta:
-    #         syote = input("Mitä väriä kysytään? ")
-
-    #     self.jokerivari = varivalinta[syote]
-
-    #     if pelattu_kortti.arvo == 14:
-    #         seuraava_pelaaja = self._get_seuraava_pelaaja()
-
-    #         for _ in range(0, 4):
-    #             seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
-
-    #         self._seuraava_pelaaja()
 
     def _vaihda_pelisuunta(self):
         self.pelisuunta *= -1

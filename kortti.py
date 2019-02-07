@@ -26,6 +26,33 @@ class Kortti:
         else:
             return f"{path}{str(self.arvo).zfill(2)}_{special}{ext}"
 
+    def compare_color(self, other):
+        """Returns True if the color of the cards is the same.
+        """
+        return self.vari == other.vari
+
+    def compare_value(self, other):
+        """Returns True if the value of the cards is the same.
+        """
+        return self.arvo == other.arvo
+
+    def compare_to_wildcard(self, wildcard_color):
+        """Returns True if the color of the card corresponds
+        to the wildcard color."""
+        return self.vari == wildcard_color
+
+    def is_wildcard(self):
+        """Returns True if the 'color' of the card is wildcard.
+        """
+        return self.vari == Config.ERIKOISVARI
+
+#   # TODO tee tarkastusmetodit korttiluokkaan
+# if (pelattu_kortti.vari == verrattava_kortti.vari or
+#     pelattu_kortti.arvo == verrattava_kortti.arvo or
+#     pelattu_kortti.vari == Config.ERIKOISVARI or
+#         pelattu_kortti.vari == self.jokerivari):
+#     return True
+
     def __str__(self):
         return f"{self.arvo} {self.vari}{' ' + self.toiminta if self.toiminta else ''}"
 
