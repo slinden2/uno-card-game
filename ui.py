@@ -28,23 +28,23 @@ class UnoCardGame(tk.Tk):
 
         self.framet = {}
         self.luo_framet()
-        self.nayta_frame(Aloitusframe)
+        self.show_frame(MainScreen)
 
     def luo_framet(self):
         self.framet = {}
-        for F in (Aloitusframe, Pelaajaframe, Asetusframe, Peliframe):
+        for F in (MainScreen, Pelaajaframe, Asetusframe, Peliframe, HelpFrame):
             frame = F(self.main_window, self)
             self.framet[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
-    def nayta_frame(self, frame):
+    def show_frame(self, frame):
         if frame in (Pelaajaframe, Peliframe):
             # pelaaja- ja peliframet taytyy paivittaa ennen nayttamista
             self.paivita_frame(frame)
         frame1 = self.framet[frame]
         frame1.tkraise()
 
-    def paivita_framet(self):
+    def update_frames(self):
         for frame in self.framet:
             self.framet[frame].destroy()
         self.luo_framet()
@@ -56,7 +56,7 @@ class UnoCardGame(tk.Tk):
         frame1.grid(row=0, column=0, sticky="nsew")
 
 
-class Aloitusframe(tk.Frame):
+class MainScreen(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -64,13 +64,10 @@ class Aloitusframe(tk.Frame):
 
         self.rowconfigure(0, weight=1)
         self.rowconfigure(1, weight=1)
-        self.rowconfigure(2, weight=5)
-        self.rowconfigure(3, weight=5)
-        self.rowconfigure(4, weight=5)
         self.columnconfigure(0, weight=1)
 
         self.set_logo()
-        self.set_title()
+        self.create_title()
         self.create_buttons()
 
     def set_logo(self):
@@ -80,24 +77,46 @@ class Aloitusframe(tk.Frame):
 
         logo_label.grid(row=0, column=0)
 
-    def set_title(self):
-        font = tkFont.Font(family="Helvetica", size=50, weight="bold")
-
-        label = tk.Label(self, text="CARD GAME", font=font)
-        label.grid(row=1, column=0, sticky="ew")
+    def create_title(self):
+        font = tkFont.Font(**Config.TITLE_FONT)
+        title_label = tk.Label(self, text="CARD GAME", font=font)
+        title_label.grid(row=1, column=0, sticky="ew")
 
     def create_buttons(self):
-        methods = {"Play": lambda: self.controller.nayta_frame(Pelaajaframe),
-                   "Settings": lambda: self.controller.nayta_frame(Asetusframe),
-                   "Quit": self.controller.quit}
+        # set up dict for button creation
+        button_properties = {"Play": lambda: self.controller.show_frame(Pelaajaframe),
+                             "Settings": lambda: self.controller.show_frame(Asetusframe),
+                             "Help": lambda: self.controller.show_frame(HelpFrame),
+                             "Quit": self.controller.quit}
 
-        for i, (text, command) in enumerate(methods.items(), start=2):
-            nappi = ttk.Button(self,
+        # create buttons
+        for i, (text, command) in enumerate(button_properties.items(), start=2):
+            button = ttk.Button(self,
                             text=text,
                             command=command,
                             width=30)
-            nappi.grid(row=i, column=0, sticky="ns")
+            button.grid(row=i, column=0, sticky="ns", pady=5)
 
+            self.rowconfigure(i, weight=5)
+
+
+class HelpFrame(tk.Frame):
+
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+
+        self.controller = controller
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        self.create_title()
+
+    def create_title(self):
+        font = tkFont.Font(**Config.TITLE_FONT)
+
+        label1 = ttk.Label(self, text="Help", font=font)
+        label1.grid(row=0, column=0)
 
 class Asetusframe(tk.Frame):
 
@@ -107,62 +126,77 @@ class Asetusframe(tk.Frame):
         self.controller = controller
 
         self.rowconfigure(0, weight=1)
-        self.rowconfigure(1, weight=1)
+        self.rowconfigure(1, weight=20)
         self.columnconfigure(0, weight=1)
 
-        self.luo_widgetit()
+        self.create_title()
+        self.create_setting_frame()
+        self.create_setting_widgets()
+        self.create_buttons()
 
-    def luo_widgetit(self):
-        label1 = ttk.Label(self, text="Asetukset")
-        label1.grid(row=0, column=0, columnspan=2, sticky="nsew")
+    def create_title(self):
+        font = tkFont.Font(**Config.TITLE_FONT)
+        title_label = tk.Label(self, text="Settings", font=font)
+        title_label.grid(row=0, column=0, sticky="nsew")
 
-        label1 = ttk.Label(self, text="Pelaajamäärä")
-        label1.grid(row=1, column=0, sticky="nsew")
+    def create_setting_frame(self):
+        self.label_frame = ttk.LabelFrame(self, padding=10)
+        self.label_frame.grid(row=1, column=0)
 
-        self.pelaaja_lkm = tk.IntVar()
-        self.pelaaja_lkm.set(Config.PELAAJA_LKM)
-        entry_pelaaja_maara = tk.Spinbox(self,
-                                         increment=1,
-                                         from_=2,
-                                         to=4,
-                                         state="readonly",
-                                         wrap=True,
-                                         textvariable=self.pelaaja_lkm)
-        entry_pelaaja_maara.grid(row=1, column=1, sticky="ew")
+    def create_setting_widgets(self):
+        # set up variables for setting labels and spinboxes
+        font = tkFont.Font(**Config.SETTING_FONT)
+        self.player_qty = tk.IntVar()
+        self.player_qty.set(Config.PLAYER_QTY)
+        self.winning_points = tk.IntVar()
+        self.winning_points.set(Config.WINNING_POINTS)
 
-        label1 = ttk.Label(self, text="Voittopisteet")
-        label1.grid(row=2, column=0, sticky="nsew")
+        widget_properties = {"Player Quantity": {"increment": 1,
+                                                 "from_": 2,
+                                                 "to": 4,
+                                                 "state": "readonly",
+                                                 "wrap": True,
+                                                 "textvariable": self.player_qty,
+                                                 "width": 5},
+                             "Winning Points": {"increment": 1,
+                                                 "from_": 20,
+                                                 "to": 500,
+                                                 "wrap": True,
+                                                 "textvariable": self.winning_points,
+                                                 "width": 5}}
 
-        self.voittopisteet = tk.IntVar()
-        self.voittopisteet.set(Config.VOITTOPISTEET)
-        entry_voittopisteet = tk.Spinbox(self,
-                                         increment=1,
-                                         from_=20,
-                                         to=500,
-                                         wrap=True,
-                                         textvariable=self.voittopisteet)
-        entry_voittopisteet.grid(row=2, column=1, sticky="ew")
+        # create widgets
+        for i, setting in enumerate(widget_properties):
+            label = tk.Label(self.label_frame, text=setting, font=font)
+            label.grid(row=i, column=0, sticky="e", padx=20)
 
-        nappi1 = ttk.Button(self,
-                            text="Peruuta",
-                            command=self.peruuta_muutokset)
-        nappi1.grid(row=3, column=0, sticky="nsew")
+            spinbox = tk.Spinbox(self.label_frame, **widget_properties[setting], font=font)
+            spinbox.grid(row=i, column=1, sticky="w", padx=20)
 
-        nappi2 = ttk.Button(self,
-                            text="OK",
-                            command=self.tallenna_asetukset)
-        nappi2.grid(row=3, column=1, sticky="nsew")
+    def create_buttons(self):
+        button_properties = [{"text": "OK",
+                             "command": self.save_settings},
+                            {"text": "Cancel",
+                             "command": self.undo_changes}]
 
-    def peruuta_muutokset(self):
-        self.pelaaja_lkm.set(Config.PELAAJA_LKM)
-        self.voittopisteet.set(Config.VOITTOPISTEET)
-        self.controller.nayta_frame(Aloitusframe)
+        for i, kwargs in enumerate(button_properties):
+            button = ttk.Button(self.label_frame, **kwargs, width=30)
+            button.grid(row=i, column=2)
 
-    def tallenna_asetukset(self):
-        Config.PELAAJA_LKM = self.pelaaja_lkm.get()
-        Config.VOITTOPISTEET = self.voittopisteet.get()
-        self.controller.paivita_framet()
-        self.controller.nayta_frame(Aloitusframe)
+    def undo_changes(self):
+        """Cancel all the changes and go back to main screen.
+        """
+        self.player_qty.set(Config.PLAYER_QTY)
+        self.winning_points.set(Config.WINNING_POINTS)
+        self.controller.show_frame(MainScreen)
+
+    def save_settings(self):
+        """Save changes and go back to main screen.
+        """
+        Config.PLAYER_QTY = self.player_qty.get()
+        Config.WINNING_POINTS = self.winning_points.get()
+        self.controller.update_frames()
+        self.controller.show_frame(MainScreen)
 
 
 class Pelaajaframe(tk.Frame):
@@ -184,7 +218,7 @@ class Pelaajaframe(tk.Frame):
         pelaaja_widgetit = []
         # Entryjen validointimetodi
         vcmd = (self.register(self.onValidate), '%P')
-        for i in range(1, Config.PELAAJA_LKM + 1):
+        for i in range(1, Config.PLAYER_QTY + 1):
             pelaaja = tk.StringVar()
             label_pelaaja = ttk.Label(self, text=f"Pelaaja {i}")
             label_pelaaja.grid(row=i, column=0, sticky="nsew")
@@ -199,7 +233,7 @@ class Pelaajaframe(tk.Frame):
 
         nappi1 = ttk.Button(self,
                             text="Aloitusframeen",
-                            command=lambda: self.controller.nayta_frame(Aloitusframe))
+                            command=lambda: self.controller.show_frame(MainScreen))
         nappi1.grid(row=10, column=0, sticky="nsew")
 
         nappi2 = ttk.Button(self,
@@ -243,7 +277,7 @@ class Pelaajaframe(tk.Frame):
 
         self.controller.peli.aloita_ensimmainen_peli()
         self.controller.peli_kaynnissa = True
-        self.controller.nayta_frame(Peliframe)
+        self.controller.show_frame(Peliframe)
 
 
 class Peliframe(tk.Frame):
@@ -405,8 +439,8 @@ class Tilastoframe(tk.Frame):
     def lopeta_peli(self):
         self.controller.peli = Peli()
         self.controller.peli_kaynnissa = False
-        self.controller.paivita_framet()
-        self.controller.nayta_frame(Aloitusframe)
+        self.controller.update_frames()
+        self.controller.show_frame(MainScreen)
 
     def paivita_feed(self):
         self.feed_frame.destroy()

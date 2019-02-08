@@ -53,7 +53,7 @@ class Peli:
 
     def aloita_ensimmainen_peli(self):
         self.pelaajien_lkm = len(self.pelaajat)
-        self.voittopisteet = Config.VOITTOPISTEET
+        self.voittopisteet = Config.WINNING_POINTS
         self.pelaa_peli()
 
     def aloita_uusi_peli(self):
