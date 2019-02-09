@@ -33,13 +33,13 @@ class UnoCardGame(tk.Tk):
 
     def luo_framet(self):
         self.framet = {}
-        for F in (MainScreen, Pelaajaframe, Asetusframe, Peliframe, HelpPage):
+        for F in (MainScreen, PlayerPage, Asetusframe, GamePage, HelpPage):
             frame = F(self.main_window, self)
             self.framet[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
     def show_frame(self, frame):
-        if frame in (Pelaajaframe, Peliframe):
+        if frame in (PlayerPage, GamePage):
             # pelaaja- ja peliframet taytyy paivittaa ennen nayttamista
             self.paivita_frame(frame)
         frame1 = self.framet[frame]
@@ -85,7 +85,7 @@ class MainScreen(tk.Frame):
 
     def create_buttons(self):
         # set up dict for button creation
-        button_properties = {"Play": lambda: self.controller.show_frame(Pelaajaframe),
+        button_properties = {"Play": lambda: self.controller.show_frame(PlayerPage),
                              "Settings": lambda: self.controller.show_frame(Asetusframe),
                              "Help": lambda: self.controller.show_frame(HelpPage),
                              "Quit": self.controller.quit}
@@ -240,7 +240,7 @@ class Asetusframe(tk.Frame):
         self.columnconfigure(0, weight=1)
 
         self.create_title()
-        self.create_setting_frame()
+        self.create_label_frame()
         self.create_setting_widgets()
         self.create_buttons()
 
@@ -249,7 +249,7 @@ class Asetusframe(tk.Frame):
         title_label = tk.Label(self, text="Settings", font=font)
         title_label.grid(row=0, column=0, sticky="nsew")
 
-    def create_setting_frame(self):
+    def create_label_frame(self):
         self.label_frame = ttk.LabelFrame(self, padding=10)
         self.label_frame.grid(row=1, column=0)
 
@@ -309,52 +309,81 @@ class Asetusframe(tk.Frame):
         self.controller.show_frame(MainScreen)
 
 
-class Pelaajaframe(tk.Frame):
+class PlayerPage(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
 
         self.rowconfigure(0, weight=1)
+        self.rowconfigure(1, weight=20)
         self.columnconfigure(0, weight=1)
+        self.padding = 10
 
-        self.luo_widgetit()
+        self.create_title()
+        self.create_label_frame()
+        self.create_player_widgets()
+        self.create_buttons()
 
-    def luo_widgetit(self):
+    def create_title(self):
+        font = tkFont.Font(**Config.TITLE_FONT)
+        title_label = tk.Label(self, text="Players", font=font)
+        title_label.grid(row=0, column=0, sticky="nsew")
 
-        label1 = ttk.Label(self, text="Syötä pelaajien nimet:")
-        label1.grid(row=0, column=0, sticky="nsew")
+    def create_label_frame(self):
+        self.label_frame = ttk.LabelFrame(self, padding=10)
+        self.label_frame.grid(row=1, column=0)
 
-        pelaaja_widgetit = []
-        # Entryjen validointimetodi
-        vcmd = (self.register(self.onValidate), '%P')
-        for i in range(1, Config.PLAYER_QTY + 1):
-            pelaaja = tk.StringVar()
-            label_pelaaja = ttk.Label(self, text=f"Pelaaja {i}")
-            label_pelaaja.grid(row=i, column=0, sticky="nsew")
+    def create_player_widgets(self):
+        font = tkFont.Font(**Config.SETTING_FONT)
+        self.player_widgets = []
 
-            entry_pelaaja = ttk.Entry(self,
-                                      textvariable=pelaaja,
+        # entry validation method
+        vcmd = (self.register(self.on_validate), '%P')
+
+        # iterate over the player qty in order to create the correct
+        # number of entry widgets
+        for i in range(0, Config.PLAYER_QTY):
+            label_text = "Player" if i == 0 else "Computer"
+            player_name = tk.StringVar()
+            player_label = tk.Label(self.label_frame,
+                                    text=label_text,
+                                    font=font)
+            player_label.grid(row=i,
+                              column=0,
+                              sticky="nsw",
+                              pady=self.padding,
+                              padx=self.padding)
+
+            player_entry = ttk.Entry(self.label_frame,
+                                      textvariable=player_name,
                                       validate='key',
-                                      validatecommand=vcmd)
-            entry_pelaaja.grid(row=i, column=1, sticky="nsew")
+                                      validatecommand=vcmd,
+                                      font=font)
+            player_entry.grid(row=i,
+                              column=1,
+                              sticky="nsew",
+                              pady=self.padding,
+                              padx=self.padding)
 
-            pelaaja_widgetit.append((label_pelaaja, entry_pelaaja))
+            self.player_widgets.append((player_label, player_entry))
 
-        nappi1 = ttk.Button(self,
-                            text="Aloitusframeen",
-                            command=lambda: self.controller.show_frame(MainScreen))
-        nappi1.grid(row=10, column=0, sticky="nsew")
+    def create_buttons(self):
+        button_properties = {0: {"text": "Back",
+                                 "command": lambda: self.controller.show_frame(MainScreen)},
+                             1: {"text": "Play",
+                                 "command": lambda: self.start(self.player_widgets)}}
 
-        nappi2 = ttk.Button(self,
-                            text="Pelaa",
-                            command=lambda: self.kaynnista(pelaaja_widgetit))
-        nappi2.grid(row=10, column=1, sticky="nsew")
+        for column in button_properties:
+            button = ttk.Button(self.label_frame, **button_properties[column])
+            # row number 4 because the max number of players is 4. The buttons
+            # will be positioned under the entry widgets.
+            button.grid(row=4, column=column, sticky="nsew", padx=10)
 
-    def onValidate(self, P):
-        """Validoidaan pelaajien nimet.
-        Pelaajien nimiksi hyvaksytaan vain isoja tai pienia kirjaimia.
-        Nimen maksimipituus on 11 merkkia.
+    def on_validate(self, P):
+        """Validates the player names in the entry widgets.
+        The names can have only small or capital letters or numbers.
+        Max length of the name is 15 chars.
         """
         valid = "abcdefghijklmnopqrstuvwxyzåäö"
         valid = valid + valid.upper() + "0123456789 "
@@ -367,58 +396,75 @@ class Pelaajaframe(tk.Frame):
                 return False
         return True
 
-    def tarkista_tyhjat_nimikentat(self, pelaajat):
-        """Jos jokin pelaajista jää nimeättä, tämä metodi
-        täyttää nimikentän.
-        """
-        laskuri = 1
-        for _, pelaaja in pelaajat:
-            if len(pelaaja.get()) < 1:
-                pelaaja.insert(0, f"Pelaaja {laskuri}")
-                laskuri += 1
+    def check_empty_entries(self, players):
+        """If some of the entry widgets are left empty,
+        this method will fill a default name in the field.
 
-    def kaynnista(self, pelaajat):
-        self.tarkista_tyhjat_nimikentat(pelaajat)
-        # luodaan pelaaja
-        self.controller.peli.luo_pelaaja(pelaajat[0][1].get(), False)
-        # luodaan tietokoneet
-        for _, pelaaja in pelaajat[1:]:
-            self.controller.peli.luo_pelaaja(pelaaja.get(), True)
+        :param players: A list of entry widgets
+        """
+        count = 1
+        for label, player_entry in players:
+            if len(player_entry.get()) < 1:
+                if label.cget("text") == "Player":
+                    player_entry.insert(0, "Pelaaja")
+                else:
+                    player_entry.insert(0, f"Computer {count}")
+                    count += 1
+
+    def start(self, players):
+        """Start the game
+
+        :param players: A list of entry widgets
+        """
+        self.check_empty_entries(players)
+
+        # create player
+        self.controller.peli.luo_pelaaja(players[0][1].get(), False)
+
+        # create computers
+        for _, computer in players[1:]:
+            self.controller.peli.luo_pelaaja(computer.get(), True)
 
         self.controller.peli.aloita_ensimmainen_peli()
         self.controller.peli_kaynnissa = True
-        self.controller.show_frame(Peliframe)
+        self.controller.show_frame(GamePage)
 
 
-class Peliframe(tk.Frame):
+class GamePage(tk.Frame):
 
     def __init__(self, parent, controller):
+        """This class contains the actual game frame and all functionality
+        that is linked to the game logic.
+        """
         super().__init__(parent)
         self.controller = controller
 
-        self.luo_tilastoframe()
-        self.luo_korttiframe()
+        self.create_stat_frame()
+        self.create_table_frame()
 
         self.rowconfigure(0, weight=2)
         self.rowconfigure(1, weight=20)
         self.rowconfigure(2, weight=1)
         self.columnconfigure(0, weight=1)
 
-    def luo_tilastoframe(self):
-        self.tilastoframe = Tilastoframe(self, self.controller)
+    def create_stat_frame(self):
+        self.tilastoframe = StatFrame(self, self.controller)
         self.tilastoframe.grid(row=0, column=0, sticky="nsew")
 
-    def luo_korttiframe(self):
+    def create_table_frame(self):
+        """Table refers to an actual table where the game 
+        is to be played
+        """
         self.korttiframe = Korttiframe(self, self.controller)
         self.korttiframe.grid(row=1, column=0, sticky="nsew")
 
     def paivita_tilastoframe(self):
         self.tilastoframe.destroy()
-        self.luo_tilastoframe()
+        self.create_stat_frame()
 
     def paivita_korttiframe(self):
         self.korttiframe.destroy()
-        self.luo_korttiframe()
+        self.create_table_frame()
 
     def paivita_peliframe(self):
         self.paivita_tilastoframe()
@@ -448,7 +494,7 @@ class Peliframe(tk.Frame):
             self.paivita_tilastoframe()
 
 
-class Tilastoframe(tk.Frame):
+class StatFrame(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
