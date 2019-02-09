@@ -25,7 +25,7 @@ class UnoCardGame(tk.Tk):
         self.main_window.columnconfigure(0, weight=1)
 
         self.peli = Peli()
-        self.peli_kaynnissa = False
+        self.game_on = False
 
         self.framet = {}
         self.luo_framet()
@@ -41,7 +41,7 @@ class UnoCardGame(tk.Tk):
     def show_frame(self, frame):
         if frame in (PlayerPage, GamePage):
             # pelaaja- ja peliframet taytyy paivittaa ennen nayttamista
-            self.paivita_frame(frame)
+            self.update_frame(frame)
         frame1 = self.framet[frame]
         frame1.tkraise()
 
@@ -50,7 +50,7 @@ class UnoCardGame(tk.Tk):
             self.framet[frame].destroy()
         self.luo_framet()
 
-    def paivita_frame(self, frame):
+    def update_frame(self, frame):
         self.framet[frame].destroy()
         frame1 = frame(self.main_window, self)
         self.framet[frame] = frame1
@@ -426,7 +426,7 @@ class PlayerPage(tk.Frame):
             self.controller.peli.luo_pelaaja(computer.get(), True)
 
         self.controller.peli.aloita_ensimmainen_peli()
-        self.controller.peli_kaynnissa = True
+        self.controller.game_on = True
         self.controller.show_frame(GamePage)
 
 
@@ -448,50 +448,54 @@ class GamePage(tk.Frame):
         self.columnconfigure(0, weight=1)
 
     def create_stat_frame(self):
-        self.tilastoframe = StatFrame(self, self.controller)
-        self.tilastoframe.grid(row=0, column=0, sticky="nsew")
+        """Stat frame is the frame that contains the feed and 
+        the points of the players.
+        """
+        self.stat_frame = StatFrame(self, self.controller)
+        self.stat_frame.grid(row=0, column=0, sticky="nsew")
 
     def create_table_frame(self):
         """Table refers to an actual table where the game 
         is to be played
         """
-        self.korttiframe = Korttiframe(self, self.controller)
-        self.korttiframe.grid(row=1, column=0, sticky="nsew")
+        self.table_frame = TableFrame(self, self.controller)
+        self.table_frame.grid(row=1, column=0, sticky="nsew")
 
-    def paivita_tilastoframe(self):
-        self.tilastoframe.destroy()
+    def update_stat_frame(self):
+        self.stat_frame.destroy()
         self.create_stat_frame()
 
-    def paivita_korttiframe(self):
-        self.korttiframe.destroy()
+    def update_table_frame(self):
+        self.table_frame.destroy()
         self.create_table_frame()
 
-    def paivita_peliframe(self):
-        self.paivita_tilastoframe()
-        self.paivita_korttiframe()
+    def update_peliframe(self):
+        self.update_stat_frame()
+        self.update_table_frame()
 
-    def lopeta_vuoro(self):
+    def end_turn(self):
+        """After every turn all the frames are updated
+        so that the changes become visible to the user."""
         if self.controller.peli.peli_pelattu:
-            self.paivita_tilastoframe()
-            self.paivita_korttiframe()
-            self.controller.peli_kaynnissa = False
+            self.update_stat_frame()
+            self.update_table_frame()
+            self.controller.game_on = False
 
         elif (self.controller.peli.vuoro_pelattu_tietokone or
               self.controller.peli.kortti_nostettu or
               self.controller.peli.kierros_pelattu or
               self.controller.peli.kysytaan_varia):
-            self.paivita_korttiframe()
-            self.paivita_tilastoframe()
+            self.update_table_frame()
+            self.update_stat_frame()
 
-        # while loopia tarvitaan erityisesti kaksinpelissä, jos
-        # tietokone pelaa enemmän kuin yhden vuoronskippauskortin
-        # peräkkäin
+        # while loop is needed for skipping the players
+        # turn if more than one skip turn card is played
         while (self.controller.peli.ohitus and not
                self.controller.peli.kierros_pelattu and not
                self.controller.peli.kysytaan_varia):
             self.controller.peli.ohita_pelaajan_vuoro()
-            self.paivita_korttiframe()
-            self.paivita_tilastoframe()
+            self.update_table_frame()
+            self.update_stat_frame()
 
 
 class StatFrame(tk.Frame):
@@ -506,104 +510,121 @@ class StatFrame(tk.Frame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=10)
 
-        self.luo_widgetit()
-        self.luo_feed_widget()
-        self.luo_hallintanapit()
+        self.create_title()
+        self.create_point_widget()
+        self.create_feed_widget()
+        self.create_buttons()
 
-    def luo_widgetit(self):
+    def create_title(self):
+        """Create changing round number title at the top of the page.
+        """
+        font = tkFont.Font(**Config.ROUND_FONT)
+        round_num_str = tk.StringVar()
+        round_num_str.set(f"Round {self.parent.controller.peli.kierros}")
+        label2 = tk.Label(self, textvariable=round_num_str, font=font)
+        label2.grid(row=0, column=0, columnspan=3, sticky="nsew")
 
-        value_pad = 10
+    def create_point_widget(self):
+        """Show player points during the game. The points update after
+        every round.
+        """
+        point_frame = ttk.LabelFrame(self, text="Points")
+        point_frame.grid(row=1, column=0, rowspan=2, padx=5, sticky="nsew")
 
-        labelframe = ttk.LabelFrame(self, text="Tilastot")
-        labelframe.grid(row=0, column=0, rowspan=2, padx=5, sticky="nsew")
+        for i, player in enumerate(self.parent.controller.peli.pelaajat):
+            player_name = tk.StringVar()
+            player_name.set(player.get_nimi())
+            name_label = tk.Label(point_frame, textvariable=player_name)
+            name_label.grid(row=i, column=0, sticky="w")
 
-        label1 = tk.Label(labelframe, text="Kierros")
-        label1.grid(row=0, column=0, sticky="w")
+            points = tk.IntVar()
+            points.set(player.get_pisteet())
+            point_label = tk.Label(point_frame, textvariable=points)
+            point_label.grid(row=i, column=1, sticky="w", padx=10)
 
-        kierros = tk.IntVar()
-        kierros.set(self.parent.controller.peli.kierros)
-        label2 = tk.Label(labelframe, textvariable=kierros)
-        label2.grid(row=0, column=1, sticky="w", padx=value_pad)
-
-        for i, pelaaja in enumerate(self.parent.controller.peli.pelaajat, start=1):
-            nimi = tk.StringVar()
-            nimi.set(pelaaja.get_nimi())
-            label3 = tk.Label(labelframe, textvariable=nimi)
-            label3.grid(row=i, column=0, sticky="w")
-
-            pisteet = tk.IntVar()
-            pisteet.set(pelaaja.get_pisteet())
-            label4 = tk.Label(labelframe, textvariable=pisteet)
-            label4.grid(row=i, column=1, sticky="w", padx=value_pad)
-
-    def luo_feed_widget(self):
-
+    def create_feed_widget(self):
+        """Create the feed box that shows what happens during computers
+        turns.
+        """
         self.feed_frame = ttk.LabelFrame(self, text="Feed")
-        self.feed_frame.grid(row=0, column=1, rowspan=2, padx=5, sticky="nsew")
+        self.feed_frame.grid(row=1, column=1, rowspan=2, padx=5, sticky="nsew")
 
         self.feed_frame.columnconfigure(0, weight=50)
         self.feed_frame.columnconfigure(1, weight=1)
         self.feed_frame.rowconfigure(0, weight=1)
 
-        self.pystyscroll = ttk.Scrollbar(self.feed_frame)
-        self.pystyscroll.grid(row=0, column=1, sticky="nsw")
+        # scrollbar that activates when the feed box has
+        # enough content
+        self.vert_scroll = ttk.Scrollbar(self.feed_frame)
+        self.vert_scroll.grid(row=0, column=1, sticky="nsw")
 
         self.feed_box = tk.Listbox(self.feed_frame,
                                    activestyle="dotbox",
                                    height=7,
-                                   yscrollcommand=self.pystyscroll.set,
+                                   yscrollcommand=self.vert_scroll.set,
                                    highlightthickness=0)
         self.feed_box.grid(row=0, column=0, sticky="nsew")
-        self.pystyscroll["command"] = self.feed_box.yview
 
+        # set the scrollbar to control the feed boxes yview method
+        self.vert_scroll["command"] = self.feed_box.yview
+
+        # insert messages to the feed box
         for timestamp in self.controller.peli.feed.messages:
             msg = " - ".join(timestamp)
             self.feed_box.insert(tk.END, msg)
             self.feed_box.yview(tk.END)
 
-    def luo_hallintanapit(self):
+    def create_buttons(self):
+        """Create next round, new game and quit buttons.
+        """
+        # create next round or new game buttons depending on
+        # the state of the game
         if not self.controller.peli.peli_pelattu:
-            tila = tk.NORMAL
+            state = tk.NORMAL
+
             if not self.controller.peli.kierros_pelattu:
-                tila = tk.DISABLED
-            kierros_nappi = ttk.Button(self,
-                                       text="Seuraava kierros",
-                                       command=self.aloita_seuraava_kierros,
-                                       state=tila)
-            kierros_nappi.grid(row=0, column=2, sticky="ew")
+                state = tk.DISABLED
+
+            round_button = ttk.Button(self,
+                                       text="Next round",
+                                       command=self.start_next_round,
+                                       state=state)
+            round_button.grid(row=1, column=2, sticky="ew")
+
         else:
-            uusi_peli_nappi = ttk.Button(self,
-                                         text="Uusi peli",
-                                         command=self.aloita_uusi_peli)
-            uusi_peli_nappi.grid(row=0, column=2, sticky="ew")
+            new_game_button = ttk.Button(self,
+                                         text="New game",
+                                         command=self.start_new_game)
+            new_game_button.grid(row=1, column=2, sticky="ew")
 
-        lopeta_nappi = ttk.Button(
-            self, text="Lopeta peli", command=self.lopeta_peli)
-        lopeta_nappi.grid(row=1, column=2, sticky="ew")
+        quit_button = ttk.Button(self,
+                                  text="Quit",
+                                  command=self.quit_game)
+        quit_button.grid(row=2, column=2, sticky="ew")
 
-    def aloita_seuraava_kierros(self):
+    def start_next_round(self):
         self.controller.peli.aloita_uusi_kierros()
-        self.parent.paivita_tilastoframe()
-        self.parent.paivita_korttiframe()
-        self.parent.lopeta_vuoro()
+        self.parent.update_stat_frame()
+        self.parent.update_table_frame()
+        self.parent.end_turn()
 
-    def aloita_uusi_peli(self):
+    def start_new_game(self):
         self.controller.peli.aloita_uusi_peli()
-        self.controller.peli_kaynnissa = True
-        self.parent.paivita_peliframe()
+        self.controller.game_on = True
+        self.parent.update_game_page()
 
-    def lopeta_peli(self):
+    def quit_game(self):
         self.controller.peli = Peli()
-        self.controller.peli_kaynnissa = False
+        self.controller.game_on = False
         self.controller.update_frames()
         self.controller.show_frame(MainScreen)
 
-    def paivita_feed(self):
+    def update_feed(self):
         self.feed_frame.destroy()
-        self.luo_feed_widget()
+        self.create_feed_widget()
 
 
-class Korttiframe(tk.Frame):
+class TableFrame(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -628,7 +649,7 @@ class Korttiframe(tk.Frame):
 
     def luo_widgetit(self):
 
-        if self.controller.peli_kaynnissa:
+        if self.controller.game_on:
             pakkaframe = Pakkaframe(self, self.controller)
             pakkaframe.grid(row=1, column=1, columnspan=2, sticky="nsew")
 
@@ -743,9 +764,9 @@ class Korttiframe(tk.Frame):
 
     def kasittele_vari(self, vari):
         self.controller.peli.vastaanota_vari(vari)
-        self.parent.paivita_tilastoframe()
-        self.parent.paivita_korttiframe()
-        self.parent.lopeta_vuoro()
+        self.parent.update_stat_frame()
+        self.parent.update_korttiframe()
+        self.parent.end_turn()
 
 
 class Pakkaframe(tk.Frame):
@@ -795,7 +816,7 @@ class Kuvalabel(tk.Label):
         elif self.name == "kasi":
             self.pelaa_kortti()
 
-        self.parent.master.parent.lopeta_vuoro()
+        self.parent.master.parent.end_turn()
 
     def passaa(self):
         self.controller.peli.passaa()
