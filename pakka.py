@@ -95,6 +95,9 @@ class Pakka:
     def on_tyhja(self):
         return len(self) == 0
 
+    def cards_left(self):
+        return len(self)
+
     def __len__(self):
         return len(self.korttipakka)
 
