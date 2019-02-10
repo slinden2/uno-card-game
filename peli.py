@@ -1,452 +1,416 @@
 import random
-
 from config import Config
 from pakka import Pakka
 from pelaaja import Pelaaja
 from feed import Feed
 
 
-class Peli:
-    """Tämä luokka pitää sisällään UNO-korttipelin logiikan.
-    Peli-olion saa helposti luotua oletusasetuksilla kutsumalla
-    Peli.palauta_perus_peli()-metodin. Oletuksena on 3 pelaajaa ja
-    voittoon tarvitaan 500 pistettä.
-
-    :param: pelaajien_lkm: Pelaajien lukumäärä
-    :param: voittopisteet: Voittoon tarvittavien pisteiden määrä
-    """
+class Game:
 
     def __init__(self):
-        self.pelaajat = []
-        self.nostopakka = Pakka()
-        self.poistopakka = Pakka()
-        self.varit = Config.KORTTIVARIT
-        self.jokerivari = Config.ERIKOISVARI
+        """This class contais the logic of the UNO card game.
+        """
+        self.players = []
+        self.draw_deck = Pakka()
+        self.discard_deck = Pakka()
+        self.colors = Config.CARD_COLORS
+        self.wc_color = Config.SPECIAL_COLOR # wc = wildcard
         self.feed = Feed(50)
 
-        self._alusta_pelimuuttujat()
+        self._init_game_variables()
 
-    def _alusta_pelimuuttujat(self):
-        self.kierros = 1
-        self.vuorossa = 0
-        self.aloittaja = 0
-        self.pelisuunta = 1
-        self.kortti_nostettu = False
-        self.kortti_nostettu_tietokone = False
-        self.vuoro_pelattu = False
-        self.vuoro_pelattu_tietokone = False
-        self.kierros_pelattu = False
-        self.peli_pelattu = False
-        self.ohitus = False
-        self.kysytaan_varia = False
+    def _init_game_variables(self):
+        """This method is called at the beginning of
+        every game."""
+        self.round_num = 1
+        self.in_turn = 0
+        self._starting_player = 0
+        self._game_direction = 1
+        self.card_drawn = False
+        self.card_drawn_computer = False
+        self.turn_played = False
+        self.turn_played_computer = False
+        self.round_played = False
+        self.game_played = False
+        
+        # True if the next players turn is going to be passed.
+        self.passing = False
+        self.color_queried = False
 
-        # Muuttujaa käytetään pelaajan voiton määrityksessä.
-        # Jos pelaajan viimeinen kädessä oleva kortti on
-        # toimintakortti, niin kun se pelataan, saattaa vuorossa
-        # oleva pelaaja vaihtua. Tässä tapauksessa ilman tätä
-        # apumuuttujaa voitontarkistus ei toimi oikein.
-        # TODO Ehkä turha muuttuja.
-        self.toimintakortin_pelannut_pelaaja = None
+    def create_player(self, name, is_computer):
+        """Create a new player to the game.
+        
+        :param name: Name of the player
+        :param is_computer: Define if a player is controlled
+                            by the player or automatically."""
+        self.players.append(Pelaaja(name, is_computer))
 
-    def luo_pelaaja(self, nimi, tietokone):
-        self.pelaajat.append(Pelaaja(nimi, tietokone))
+    def start_first_game(self):
+        self.player_qty = len(self.players)
+        self.winning_points = Config.WINNING_POINTS
+        self.play_game()
 
-    def aloita_ensimmainen_peli(self):
-        self.pelaajien_lkm = len(self.pelaajat)
-        self.voittopisteet = Config.WINNING_POINTS
-        self.pelaa_peli()
+    def start_new_game(self):
+        for player in self.players:
+            player.resetoi()
+        self._init_game_variables()
+        self.play_game()
 
-    def aloita_uusi_peli(self):
-        for pelaaja in self.pelaajat:
-            pelaaja.resetoi()
-        self._alusta_pelimuuttujat()
-        self.pelaa_peli()
+    def start_new_round(self):
+        self._game_direction = 1
+        self.color_queried = False
+        self.passing = 0
+        self.play_game()
 
-    def aloita_uusi_kierros(self):
-        self.pelisuunta = 1
-        self.kysytaan_varia = False
-        self.ohitus = 0
-        self.pelaa_peli()
-
-    def pelaa_peli(self):
-        tilanne = "peli" if self.kierros == 1 else "kierros"
+    def play_game(self):
+        state = "game" if self.round_num == 1 else "round"
         self.feed.add_msg(
-            f"Uusi {tilanne} alkaa. Kierroksen numero on {self.kierros}.")
-        self.kierros_pelattu = False
-        self.nostopakka.luo_pakka()
-        self.nostopakka.sekoita()
-        self._jaa_aloituskortit()
-        self.nostopakka.kaanna_pakka()
-        self._aloituskortti_poistopakkaan()
-        if self.kierros > 1:
-            self._maarita_aloittava_pelaaja()
+            f"New {state} begins. Round number is {self.round_num}.")
+        self.round_played = False
+        self.draw_deck.create_deck()
+        self.draw_deck.shuffle()
+        self._deal_starting_cards()
+        self.draw_deck.turn_deck()
+        self._deal_first_card_to_discard_deck()
 
-        self.toimintakortin_pelannut_pelaaja = None
+        if self.round_num > 1:
+            self._define_starting_player()
 
-        if self.vuorossa != 0:
-            self._pelaa_tietokoneiden_vuorot()
+        if self.in_turn != 0:
+            self._play_computer_turns()
 
-    def _maarita_aloittava_pelaaja(self):
-        if self.aloittaja < self.pelaajien_lkm - 1:
-            self.aloittaja += 1
-            self.vuorossa = self.aloittaja
+    def _define_starting_player(self):
+        if self._starting_player < self.player_qty - 1:
+            self._starting_player += 1
+            self.in_turn = self._starting_player
         else:
-            self.aloittaja, self.vuorossa = 0, 0
+            self._starting_player, self.in_turn = 0, 0
 
-    def _get_vuorossaoleva_pelaaja(self):
-        return self.pelaajat[self.vuorossa]
+    def _get_player_in_turn(self):
+        return self.players[self.in_turn]
 
-    def _get_seuraava_pelaaja(self):
-        if self.pelisuunta == 1:
+    def _get_next_player(self):
+        """Returns the next player.
+        """
+        if self._game_direction == 1:
 
-            if self.vuorossa < self.pelaajien_lkm - 1:
-                return self.pelaajat[self.vuorossa + 1]
+            if self.in_turn < self.player_qty - 1:
+                return self.players[self.in_turn + 1]
             else:
-                return self.pelaajat[0]
-
-        else:
-            if self.vuorossa == 0:
-                return self.pelaajat[self.pelaajien_lkm - 1]
-            else:
-                return self.pelaajat[self.vuorossa - 1]
-
-    def _seuraava_pelaaja(self):
-        """Metodia käytetään vuoron vaihtamiseen."""
-        if self.pelisuunta == 1:
-
-            if self.vuorossa == self.pelaajien_lkm - 1:
-                self.vuorossa = 0
-            else:
-                self.vuorossa += 1
+                return self.players[0]
 
         else:
-            if self.vuorossa == 0:
-                self.vuorossa = self.pelaajien_lkm - 1
+            if self.in_turn == 0:
+                return self.players[self.player_qty - 1]
             else:
-                self.vuorossa -= 1
+                return self.players[self.in_turn - 1]
 
-    def _jaa_aloituskortit(self):
-        """Jaetaan aloituskortit kaikille pelissä oleville
-        pelaajille."""
+    def _next_player(self):
+        """Used for changing the turn.
+        """
+        if self._game_direction == 1:
+
+            if self.in_turn == self.player_qty - 1:
+                self.in_turn = 0
+            else:
+                self.in_turn += 1
+
+        else:
+            if self.in_turn == 0:
+                self.in_turn = self.player_qty - 1
+            else:
+                self.in_turn -= 1
+
+    def _deal_starting_cards(self):
+        """Deal starting hands to all players
+        in game.
+        """
         for _ in range(0, 7):
-            for pelaaja in self.pelaajat:
-                pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
-        for pelaaja in self.pelaajat:
-            pelaaja.kasi.sort()
+            for player in self.players:
+                player.draw_card(self.draw_deck.deal_card())
+        for player in self.players:
+            player.get_hand().sort()
 
-    def _aloituskortti_poistopakkaan(self):
-        """Asetetaan aloituskortti poistopakkaan.
-        Aloituskortti ei voi olla toimintakortti.
+    def _deal_first_card_to_discard_deck(self):
+        """Deal first card to the discard deck.
+        The first can't be an action card.
         """
         while True:
-            aloituskortti = self.nostopakka.jaa_kortti()
+            starting_card = self.draw_deck.deal_card()
 
-            if aloituskortti.arvo > 9:
-                self.nostopakka.lisaa_kortti(aloituskortti)
+            if starting_card.get_value() > 9:
+                self.draw_deck.add_card(starting_card)
                 continue
 
-            self.poistopakka.lisaa_kortti(aloituskortti)
+            self.discard_deck.add_card(starting_card)
             break
 
-    def _tuhoa_pelaajien_kadet(self):
-        """Jokaisen kierroksen päätyttyä pelaajien
-        kädet nollataan."""
-        for pelaaja in self.pelaajat:
-            pelaaja.tuhoa_kasi()
-
-    def pelaa_kortti(self, kortti):
-        """Tata metodia kutsutaan tiedostosta ui.py. Kun pelaaja valitsee
-        kortin klikkaamalla sitä, kutsutaan tämä metodi.
+    def _destroy_all_hands(self):
+        """After every round the hands are destroyed.
         """
-        self.vuoro_pelattu_tietokone = False
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        kortti = pelaaja.get_kasi()[kortti]
-        self._pelaa_kortti(kortti)
+        for player in self.players:
+            player.destroy_hand()
 
-        self._suorita_voiton_tarkistus(pelaaja)
-        if self.kierros_pelattu:
+    def play_card(self, card):
+        """This method is called from ui.py file when 
+        the player clicks a card in his hand.
+        """
+        self.turn_played_computer = False
+        player = self._get_player_in_turn()
+        card = player.get_hand()[card]
+        self._play_card(card)
+
+        self._execute_win_check(player)
+        if self.round_played:
             return
 
-        if self.vuoro_pelattu:
-            self._siirra_vuoro_tietokoneelle()
+        if self.turn_played:
+            self._pass_turn_to_computer()
 
-    def nosta_kortti(self):
-        self._nosta_kortti()
+    def draw_card(self):
+        self._draw_card()
 
-    def passaa(self):
-        self.vuoro_pelattu_tietokone = False
-        self._passaa()
+    def pass_turn(self):
+        self.turn_played_computer = False
+        self._pass_turn()
 
-        if self.vuoro_pelattu:
-            self._siirra_vuoro_tietokoneelle()
+        if self.turn_played:
+            self._pass_turn_to_computer()
 
-    def ohita_pelaajan_vuoro(self):
-        self.vuoro_pelattu_tietokone = False
-        self.ohitus = False
-        self.feed.add_msg(f"Pelaajan 1 vuoro ohitetaan.")
-        self._siirra_vuoro_tietokoneelle()
+    def pass_players_turn(self):
+        self.turn_played_computer = False
+        self.passing = False
+        self.feed.add_msg(f"Players turn has been passed.")
+        self._pass_turn_to_computer()
 
-    def vastaanota_vari(self, vari):
-        # kutsutaan guista
-        self.kysytaan_varia = False
-        self.vuoro_pelattu = True
-        self.jokerivari = vari
-        self.feed.add_msg(f"Jokerivari on {vari}.")
-        self._siirra_vuoro_tietokoneelle()
+    def receive_color(self, color):
+        """Receive wildcard color from GUI.
+        """
+        self.color_queried = False
+        self.turn_played = True
+        self.wc_color = color
+        self.feed.add_msg(f"Wild Card color is {color}.")
+        self._pass_turn_to_computer()
 
-    def _siirra_vuoro_tietokoneelle(self):
-        self._seuraava_pelaaja()
-        self._pelaa_tietokoneiden_vuorot()
+    def _pass_turn_to_computer(self):
+        self._next_player()
+        self._play_computer_turns()
 
-    def _lopeta_vuoro(self, pelaaja):
-        self.kortti_nostettu_tietokone = False
-        self.vuoro_pelattu_tietokone = False
-        voittaja = self._suorita_voiton_tarkistus(pelaaja)
-        self._seuraava_pelaaja()
-        return voittaja
+    def _end_turn(self, player):
+        self.card_drawn_computer = False
+        self.turn_played_computer = False
+        winner = self._execute_win_check(player)
+        self._next_player()
+        return winner
 
-    def _pelaa_tietokoneiden_vuorot(self):
-        kysyttava_kortti = self.poistopakka.get_viimeinen_kortti()  # TODO
-        print(f"Tietokoneelta kysyttyva kortti on {kysyttava_kortti}.")  # TODO
+    def _play_computer_turns(self):
+        """The method runs after the player has completed
+        his turn and plays all of the computer players turns.
 
-        while self.vuorossa != 0:
-            pelaaja = self._get_vuorossaoleva_pelaaja()
-            if self.ohitus:
-                self._seuraava_pelaaja()
-                self.ohitus = False
+        Computer first tries to draw a card, then he tries to play
+        one of the cards in his hand and if no card is played,
+        the computer passes his turn.
+        """
+        while self.in_turn != 0:
+            computer = self._get_player_in_turn()
+
+            if self.passing:
+                self._next_player()
+                self.passing = False
                 self.feed.add_msg(
-                    f"Pelaajan {pelaaja.get_nimi()} vuoro ohitetaan.")
-                print(f"Pelaajan {pelaaja.get_nimi()} vuoro ohitetaan")
+                    f"{computer.get_name()}'s turn has been passed.")
                 continue
-            print("vuorossa: {}".format(self.vuorossa))  # TODO
-            kasi = pelaaja.get_kasi()
-            random.shuffle(kasi)
-            self._nosta_kortti()
-            for kortti in kasi:
-                print(kortti)  # TODO
-                self._pelaa_kortti(kortti)
-                if self.kysytaan_varia:
-                    self.jokerivari = random.choice(self.varit)
-                    self.feed.add_msg(f"Jokerivari on {self.jokerivari}.")
-                    self.kysytaan_varia = False
-                if self.vuoro_pelattu_tietokone:
-                    break
-            else:
-                self._passaa()
 
-            print("Tietokoneen vuoro pelattu")  # TODO testaus
-            print(pelaaja.get_kasi())
-            print("===========")
-            voittaja = self._lopeta_vuoro(pelaaja)
+            hand = computer.get_hand()
+            random.shuffle(hand)
+            self._draw_card()
+
+            for card in hand:
+                self._play_card(card)
+
+                if self.color_queried:
+                    self.wc_color = random.choice(self.colors)
+                    self.feed.add_msg(f"Wild Card color is {self.wc_color}.")
+                    self.color_queried = False
+
+                if self.turn_played_computer:
+                    break
+
+            else:
+                self._pass_turn()
+
+            voittaja = self._end_turn(computer)
             if voittaja:
                 break
 
-        print(f"Pakassa jäljellä {len(self.nostopakka)} korttia")
-        self.vuoro_pelattu_tietokone = True
-        self.vuoro_pelattu = False
-        self.kortti_nostettu = False
-        self.pelaajat[0].get_kasi().sort()
+        self.turn_played_computer = True
+        self.turn_played = False
+        self.card_drawn = False
+        self.players[0].get_hand().sort()
 
-    def _suorita_voiton_tarkistus(self, pelaaja):
-        if self._tarkista_voitto(pelaaja):
-            self._laske_voittopisteet()
-            print(
-                f"{self.kierros:>2}. kierroksen voittaja on {pelaaja.get_nimi()}. Pisteet: {pelaaja.get_pisteet()}.")
-            self._tuhoa_pelaajien_kadet()
+    def _execute_win_check(self, player):
+        if self._check_winner(player):
+            self._count_points()
+            self._destroy_all_hands()
             self.feed.add_msg(
-                f"Kierros {self.kierros} päättyi. Voittaja on {pelaaja.get_nimi()}.")
-            self.kierros += 1
-            self.kierros_pelattu = True
+                f"Round {self.round_num} ended. The winner is {player.get_name()}.")
+            self.round_num += 1
+            self.round_played = True
 
-            if self._tarkista_voittopisteet():
-                self.peli_pelattu = True
+            if self._check_winning_points():
+                self.game_played = True
 
-            return pelaaja
+            return player
 
-    def _pelaajan_syote(self):
-        syote = ""
-        mahdolliset_syotteet = [str(x) for x in range(
-            1, len(self._get_vuorossaoleva_pelaaja().get_kasi()) + 1)] + ["N", "P"]
+    def _draw_card(self):
+        player = self._get_player_in_turn()
 
-        while syote not in mahdolliset_syotteet:
-            syote = input(
-                "Syötä joko pelattava kortti, nosta (N) uusi kortti tai passaa (P): ")
-            syote = syote.capitalize()
+        if self._approve_draw():
+            player.draw_card(self.draw_deck.deal_card())
 
-        return syote
+            if not player.is_computer():
+                player.get_hand().sort()
 
-    def tulosta_pelaajan_kortit(self):
-        """Tulostaa pelaajan kortit ja tallentaa ne dictionaryyn kortin
-        valintaa varten.
+    def _approve_draw(self):
+        """The method checks if the player can has the right
+        to draw a card. The player is not allowed to draw
+        a new card, if one or more cards in his hand
+        could be played.
+
+        The player can't draw more than one card during
+        his turn.
         """
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        pelaaja.tulosta_kasi()
-        pelaajan_kasi = {}
+        player = self._get_player_in_turn()
+        hand = player.get_hand()
 
-        for i, kortti in enumerate(pelaaja.get_kasi(), start=1):
-            pelaajan_kasi[str(i)] = kortti
+        for card in hand:
 
-        return pelaajan_kasi
-
-    def _nosta_kortti(self):
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        if self._hyvaksyta_nosto():
-            # TODO
-            if pelaaja.tietokone:
-                print("Tietokone nostaa kortin")
-            pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
-            print(f"Nostettu kortti: {pelaaja.get_viimeinen_kortti()}")
-            if not pelaaja.tietokone:
-                pelaaja.get_kasi().sort()
-
-    def _hyvaksyta_nosto(self):
-        """Metodi tarkastaa pelaajan oikeuden kortin nostoon.
-        Pelaaja ei voi nostaa uutta kortia, jos jokin hänen
-        kädessään olevista korteista on pelattavissa. Pelaaja
-        ei voi myöskään nostaa yhtä korttia enempää vuoronsa
-        aikana.
-        """
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        kasi = pelaaja.get_kasi()
-
-        for kortti in kasi:
-
-            if self._hyvaksyta_pelattu_kortti(kortti, nosto=True):
-                print((f"Et voi nostaa uutta korttia, koska kädessäsi oleva "
-                       f"kortti {kortti} on pelattavissa."))
+            # check if player has a card that could be played
+            if self._approve_played_card(card):
                 return False
 
-        if self.kortti_nostettu and not pelaaja.tietokone:
-            print("Olet jo nostanut kortin!")
+        # check if player has already drawn a card
+        if self.card_drawn and not player.is_computer():
             return False
 
-        if self.kortti_nostettu_tietokone and pelaaja.tietokone:
+        # check if computer has already drawn a card
+        if self.card_drawn_computer and player.is_computer():
             return False
 
-        self.feed.add_msg(f"{pelaaja.get_nimi()} nostaa kortin.")
+        self.feed.add_msg(f"{player.get_name()} draws a card.")
+        self.card_drawn = True
 
-        self.kortti_nostettu = True
-        if pelaaja.tietokone:
-            self.kortti_nostettu_tietokone = True
+        if player.is_computer():
+            self.card_drawn_computer = True
+
         return True
 
-    def _passaa(self):
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        if self.kortti_nostettu or len(self.nostopakka) == 0:
-            self.feed.add_msg(f"{pelaaja.get_nimi()} passaa.")
-            self.vuoro_pelattu = True
-        else:
-            print("Et voi passata!")
-        if pelaaja.tietokone and (self.kortti_nostettu_tietokone or len(self.nostopakka) == 0):
-            self.vuoro_pelattu_tietokone = True
+    def _pass_turn(self):
+        player = self._get_player_in_turn()
 
-    def _pelaa_kortti(self, kortti):
-        """Metodi hoitaa pelattuun korttiin liittyvät toiminnot.
+        if self.card_drawn or len(self.draw_deck) == 0:
+            self.feed.add_msg(f"{player.get_name()} passes.")
+            self.turn_played = True
+            
+        if player.is_computer() and (self.card_drawn_computer or 
+                                     len(self.draw_deck) == 0):
+            self.turn_played_computer = True
+
+    def _play_card(self, card):
+        """Method executes actions related to the played card.
         """
-        pelaaja = self._get_vuorossaoleva_pelaaja()
-        if self._hyvaksyta_pelattu_kortti(kortti):
-            print(pelaaja.get_nimi(), kortti)  # TODO
+        player = self._get_player_in_turn()
+        if self._approve_played_card(card):
 
-            if self.jokerivari != Config.ERIKOISVARI:
-                self.jokerivari = Config.ERIKOISVARI
+            # reset wild card color
+            if self.wc_color != Config.SPECIAL_COLOR:
+                self.wc_color = Config.SPECIAL_COLOR
 
-            if kortti.toiminta:
+            if card.toiminta:
+                self._process_action_card(card)
 
-                if kortti.arvo != 11:
-                    self.toimintakortin_pelannut_pelaaja = pelaaja
+            player.play_turn(card)
+            self.discard_deck.add_card(card)
 
-                self._kasittele_toimintakortti(kortti)
+            if not self.color_queried:
+                self.turn_played = True
 
-            pelaaja.pelaa_vuoro(kortti)
-            self.poistopakka.lisaa_kortti(kortti)
+            self.feed.add_msg(f"{player.get_name()} played a {card} card.")
 
-            if not self.kysytaan_varia:
-                self.vuoro_pelattu = True
+            if player.is_computer():
+                self.turn_played_computer = True
 
-            self.feed.add_msg(f"{pelaaja.get_nimi()} pelasi kortin {kortti}.")
-
-            if pelaaja.tietokone:
-                print(f"Tietokone pelasi {kortti}")
-                self.vuoro_pelattu_tietokone = True
-            else:
-                print(f"Pelaaja pelasi {kortti}")
-
-    def _hyvaksyta_pelattu_kortti(self, pelattu_kortti, nosto=False):
-        """Tarkistaa, että onko pelattu kortti valitsema kortti pelattavissa.
+    def _approve_played_card(self, played_card):
+        """Check if the played card is allowed.
         """
-        verrattava_kortti = self.poistopakka.get_viimeinen_kortti()
+        cmp_card = self.discard_deck.get_last_card()
 
-        if (pelattu_kortti.compare_color(verrattava_kortti) or
-                pelattu_kortti.compare_value(verrattava_kortti) or
-                pelattu_kortti.compare_to_wildcard(self.jokerivari) or
-                pelattu_kortti.is_wildcard()):
+        if (played_card.compare_color(cmp_card) or
+                played_card.compare_value(cmp_card) or
+                played_card.compare_to_wildcard(self.wc_color) or
+                played_card.is_wildcard()):
             return True
 
         return False
 
-    def _kasittele_toimintakortti(self, pelattu_kortti):
-        """Suorittaa toimintakorttiin liittyvät operaatiot.
-        Toimintakortit määritellään niiden arvon perusteella.
+    def _process_action_card(self, played_card):
+        """Execute operations related to action cards.
         """
         # ohitus
-        if pelattu_kortti.arvo == 10:
-            self.ohitus = True
+        if played_card.get_value() == 10:
+            self.passing = True
 
         # suunnanvaihto
-        elif pelattu_kortti.arvo == 11:
-            self._vaihda_pelisuunta()
+        elif played_card.get_value() == 11:
+            self._change_direction()
 
         # nosta 2
-        elif pelattu_kortti.arvo == 12:
-            self.ohitus = True
-            seuraava_pelaaja = self._get_seuraava_pelaaja()
+        elif played_card.get_value() == 12:
+            self.passing = True
+            next_player = self._get_next_player()
 
-            for i in range(0, 2):
-                seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
+            for _ in range(0, 2):
+                next_player.draw_card(self.draw_deck.deal_card())
 
-        elif pelattu_kortti.arvo == 13 or pelattu_kortti.arvo == 14:
-            self._kasittele_jokerikortti(pelattu_kortti)
+        elif played_card.get_value() == 13 or played_card.get_value() == 14:
+            self._process_wild_card(played_card)
 
-    def _kasittele_jokerikortti(self, pelattu_kortti):
-        self.kysytaan_varia = True
+    def _process_wild_card(self, played_card):
+        self.color_queried = True
 
-        if pelattu_kortti.arvo == 14:
-            self.ohitus = True
-            seuraava_pelaaja = self._get_seuraava_pelaaja()
+        if played_card.get_value() == 14:
+            self.passing = True
+            next_player = self._get_next_player()
 
             for _ in range(0, 4):
-                seuraava_pelaaja.nosta_kortti(self.nostopakka.jaa_kortti())
+                next_player.draw_card(self.draw_deck.deal_card())
 
-    def _vaihda_pelisuunta(self):
-        self.pelisuunta *= -1
+    def _change_direction(self):
+        self._game_direction *= -1
 
-    def _tarkista_voitto(self, pelaaja):
-        """Tarkistaa, että jääkö vuoron pelanneen pelaajan käteen
-        kortteja. Jos käsi on tyhjä, pelaaja voittaa."""
-        if len(pelaaja.get_kasi()) == 0:
-            pelaaja.voittaa()
+    def _check_winner(self, player):
+        """Check if there are cards left in the players hand.
+        If not, the player wins."""
+        if len(player.get_hand()) == 0:
+            player.wins()
             return True
         else:
             return False
 
-    def _laske_voittopisteet(self):
-        voittaja = self._get_vuorossaoleva_pelaaja()
-        for pelaaja in self.pelaajat:
-            for kortti in pelaaja.get_kasi():
-                voittaja.lisaa_pisteita(kortti.get_pisteet())
+    def _count_points(self):
+        winner = self._get_player_in_turn()
+        for player in self.players:
+            for card in player.get_hand():
+                winner.lisaa_pisteita(card.get_points())
 
-    def _tarkista_voittopisteet(self):
-        """Tarkistaa, onko jokin pelaajista saavuttanut voittoon
-        tarvittavat pisteet."""
-        for pelaaja in self.pelaajat:
+    def _check_winning_points(self):
+        """Check if one of the players has reached the point
+        amount needed for a win.
+        """
+        for player in self.players:
 
-            if pelaaja.get_pisteet() >= self.voittopisteet:
-                print(f"Pelin voitti {pelaaja.get_nimi()}.")
-                print(f"Kierroksia pelattiin yhteensä {self.kierros}.")
-                print("Pistetilanne:")
-
-                for pelaaja2 in self.pelaajat:
-                    print(f"{pelaaja2.get_nimi()} - {pelaaja2.get_pisteet()}")
+            if player.get_points() >= self.winning_points:
+                self.feed.add_msg(f"{player.get_name()} wins the game!")
 
                 return True
             return False

@@ -19,7 +19,7 @@ class Pakka:
 
     def __init__(self):
         self.korttipakka = []
-        self.varit = Config.KORTTIVARIT
+        self.varit = Config.CARD_COLORS
         self.luotu = False
         self.toimintakortit = {10: "ohitus",
                                11: "suunnanvaihto",
@@ -27,7 +27,7 @@ class Pakka:
                                13: "jokeri",
                                14: "jokeri + 4"}
 
-    def luo_pakka(self):
+    def create_deck(self):
         if self.luotu:
             self.korttipakka[:] = []
             self.luotu = False
@@ -65,9 +65,9 @@ class Pakka:
         for i in range(13, 15):
             for _ in range(0, 4):
                 self.korttipakka.append(
-                    Kortti(i, Config.ERIKOISVARI, 50, self.toimintakortit.get(i, None)))
+                    Kortti(i, Config.SPECIAL_COLOR, 50, self.toimintakortit.get(i, None)))
 
-    def sekoita(self):
+    def shuffle(self):
         random.shuffle(self.korttipakka)
 
     def get_pakka(self):
@@ -76,20 +76,20 @@ class Pakka:
     def get_varit(self):
         return self.varit
 
-    def jaa_kortti(self):
+    def deal_card(self):
         if len(self.korttipakka) >= 1:
             return self.korttipakka.pop(0)
         else:
             print("Pakassa ei ole kortteja!")
             return False
 
-    def lisaa_kortti(self, kortti):
+    def add_card(self, kortti):
         self.korttipakka.append(kortti)
 
-    def kaanna_pakka(self):
+    def turn_deck(self):
         self.korttipakka = self.korttipakka[::-1]
 
-    def get_viimeinen_kortti(self):
+    def get_last_card(self):
         return self.korttipakka[-1]
 
     def on_tyhja(self):

@@ -11,10 +11,10 @@ class Kortti:
         self.toiminta = toiminta
         self.pisteet = pisteet
 
-    def get_pisteet(self):
+    def get_points(self):
         return self.pisteet
 
-    def get_arvo(self):
+    def get_value(self):
         return self.arvo
 
     def get_image(self):
@@ -44,12 +44,12 @@ class Kortti:
     def is_wildcard(self):
         """Returns True if the 'color' of the card is wildcard.
         """
-        return self.vari == Config.ERIKOISVARI
+        return self.vari == Config.SPECIAL_COLOR
 
 #   # TODO tee tarkastusmetodit korttiluokkaan
 # if (pelattu_kortti.vari == verrattava_kortti.vari or
 #     pelattu_kortti.arvo == verrattava_kortti.arvo or
-#     pelattu_kortti.vari == Config.ERIKOISVARI or
+#     pelattu_kortti.vari == Config.SPECIAL_COLOR or
 #         pelattu_kortti.vari == self.jokerivari):
 #     return True
 
@@ -70,7 +70,7 @@ class Kortti:
 
     @staticmethod
     def _quantify_color(color):
-        color_dict = {k: v for v, k in enumerate(Config.KORTTIVARIT)}
-        if color == Config.ERIKOISVARI:
+        color_dict = {k: v for v, k in enumerate(Config.CARD_COLORS)}
+        if color == Config.SPECIAL_COLOR:
             return len(color_dict)
         return color_dict[color]

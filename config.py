@@ -38,8 +38,8 @@ class Config:
                         "weight": "bold"}
 
     # GAME
-    KORTTIVARIT = ["red", "yel", "gre", "blu"]
-    ERIKOISVARI = 'spc'
+    CARD_COLORS = ["red", "yel", "gre", "blu"]
+    SPECIAL_COLOR = 'spc'
     TAUSTAVARI = 'green'
     PLAYER_QTY = 2
     WINNING_POINTS = 500

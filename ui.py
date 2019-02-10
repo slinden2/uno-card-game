@@ -2,7 +2,7 @@ import tkinter as tk
 import tkinter.font as tkFont
 import webbrowser
 from tkinter import ttk
-from peli import Peli
+from peli import Game
 from config import Config
 
 
@@ -25,7 +25,7 @@ class UnoCardGame(tk.Tk):
         self.main_window.rowconfigure(0, weight=1)
         self.main_window.columnconfigure(0, weight=1)
 
-        self.game = Peli()
+        self.game = Game()
         self.game_on = False
 
         self.frames = {}
@@ -33,8 +33,8 @@ class UnoCardGame(tk.Tk):
         self.show_frame(MainScreen)
 
     def create_frames(self):
-        """Create frames and a controller dict
-        """"
+        """Create frames and a controller dict.
+        """
         self.frames = {}
         for F in (MainScreen, PlayerPage, Asetusframe, GamePage, HelpPage):
             frame = F(self.main_window, self)
@@ -432,13 +432,13 @@ class PlayerPage(tk.Frame):
         self.check_empty_entries(players)
 
         # create player
-        self.controller.game.luo_pelaaja(players[0][1].get(), False)
+        self.controller.game.create_player(players[0][1].get(), False)
 
         # create computers
         for _, computer in players[1:]:
-            self.controller.game.luo_pelaaja(computer.get(), True)
+            self.controller.game.create_player(computer.get(), True)
 
-        self.controller.game.aloita_ensimmainen_peli()
+        self.controller.game.start_first_game()
         self.controller.game_on = True
         self.controller.show_frame(GamePage)
 
@@ -488,24 +488,24 @@ class GamePage(tk.Frame):
     def end_turn(self):
         """After every turn all the frames are updated
         so that the changes become visible to the user."""
-        if self.controller.game.peli_pelattu:
+        if self.controller.game.game_played:
             self.update_stat_frame()
             self.update_table_frame()
             self.controller.game_on = False
 
-        elif (self.controller.game.vuoro_pelattu_tietokone or
-              self.controller.game.kortti_nostettu or
-              self.controller.game.kierros_pelattu or
-              self.controller.game.kysytaan_varia):
+        elif (self.controller.game.turn_played_computer or
+              self.controller.game.card_drawn or
+              self.controller.game.round_played or
+              self.controller.game.color_queried):
             self.update_table_frame()
             self.update_stat_frame()
 
         # while loop is needed for skipping the players
         # turn if more than one skip turn card is played
-        while (self.controller.game.ohitus and not
-               self.controller.game.kierros_pelattu and not
-               self.controller.game.kysytaan_varia):
-            self.controller.game.ohita_pelaajan_vuoro()
+        while (self.controller.game.passing and not
+               self.controller.game.round_played and not
+               self.controller.game.color_queried):
+            self.controller.game.pass_players_turn()
             self.update_table_frame()
             self.update_stat_frame()
 
@@ -532,7 +532,7 @@ class StatFrame(tk.Frame):
         """
         font = tkFont.Font(**Config.ROUND_FONT)
         round_num_str = tk.StringVar()
-        round_num_str.set(f"Round {self.parent.controller.game.kierros}")
+        round_num_str.set(f"Round {self.parent.controller.game.round_num}")
         label2 = tk.Label(self, textvariable=round_num_str, font=font)
         label2.grid(row=0, column=0, columnspan=3, sticky="nsew")
 
@@ -544,14 +544,14 @@ class StatFrame(tk.Frame):
         point_frame = ttk.LabelFrame(self, text="Points")
         point_frame.grid(row=1, column=0, rowspan=2, padx=5, sticky="nsew")
 
-        for i, player in enumerate(self.parent.controller.game.pelaajat):
+        for i, player in enumerate(self.parent.controller.game.players):
             player_name = tk.StringVar()
-            player_name.set(player.get_nimi())
+            player_name.set(player.get_name())
             name_label = tk.Label(point_frame, textvariable=player_name, font=font)
             name_label.grid(row=i, column=0, sticky="w")
 
             points = tk.IntVar()
-            points.set(player.get_pisteet())
+            points.set(player.get_points())
             point_label = tk.Label(point_frame, textvariable=points, font=font)
             point_label.grid(row=i, column=1, sticky="w", padx=10)
 
@@ -592,10 +592,10 @@ class StatFrame(tk.Frame):
         """
         # create next round or new game buttons depending on
         # the state of the game
-        if not self.controller.game.peli_pelattu:
+        if not self.controller.game.game_played:
             state = tk.NORMAL
 
-            if not self.controller.game.kierros_pelattu:
+            if not self.controller.game.round_played:
                 state = tk.DISABLED
 
             round_button = ttk.Button(self,
@@ -616,18 +616,18 @@ class StatFrame(tk.Frame):
         quit_button.grid(row=2, column=2, sticky="ew")
 
     def start_next_round(self):
-        self.controller.game.aloita_uusi_kierros()
+        self.controller.game.start_new_round()
         self.parent.update_stat_frame()
         self.parent.update_table_frame()
         self.parent.end_turn()
 
     def start_new_game(self):
-        self.controller.game.aloita_uusi_peli()
+        self.controller.game.start_new_game()
         self.controller.game_on = True
         self.parent.update_game_page()
 
     def quit_game(self):
-        self.controller.game = Peli()
+        self.controller.game = Game()
         self.controller.game_on = False
         self.controller.update_frames()
         self.controller.show_frame(MainScreen)
@@ -653,13 +653,13 @@ class TableFrame(tk.Frame):
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=1)
 
-        if not self.controller.game.kierros_pelattu:
+        if not self.controller.game.round_played:
             self.create_deck_frame()
             self.query_color()  # TODO
 
             # TODO
-            # if (self.controller.game.kysytaan_varia and
-            #         self.controller.game.vuorossa == 0):
+            # if (self.controller.game.color_queried and
+            #         self.controller.game.in_turn == 0):
             #     self.query_color()
 
     def create_deck_frame(self):
@@ -722,7 +722,7 @@ class TableFrame(tk.Frame):
         """Create and position starting hands for all players.
         """
         self.create_card_frames()
-        for i, (player, frame) in enumerate(zip(self.controller.game.pelaajat,
+        for i, (player, frame) in enumerate(zip(self.controller.game.players,
                                                  self.card_frames)):
             if i == 0:
                 self.set_horizontal_hand(frame, player)
@@ -773,17 +773,17 @@ class TableFrame(tk.Frame):
         :param top: Defines that the hand is for the third computer.
         """
         player_name = tk.StringVar()
-        for i, card in enumerate(player.get_kasi()):
+        for i, card in enumerate(player.get_hand()):
 
             if top:
-                player_name.set(self.controller.game.pelaajat[-1].get_nimi())
+                player_name.set(self.controller.game.players[-1].get_name())
                 label = tk.Label(frame, textvariable=player_name)
                 label.grid(row=0, column=0, sticky="s")
                 image = self.load_image(frame, top=top)
                 image.place(x=i*45, y=160, anchor="sw")
 
             else:
-                player_name.set(self.controller.game.pelaajat[0].get_nimi())
+                player_name.set(self.controller.game.players[0].get_name())
                 label = tk.Label(frame, textvariable=player_name)
                 label.grid(row=0, column=0, sticky="n")
                 image = self.load_image(frame, card=card)
@@ -798,12 +798,12 @@ class TableFrame(tk.Frame):
         :param right: Defines that the hand is for the second computer.
         """
         player_name = tk.StringVar()
-        for i, _ in enumerate(player.get_kasi()):
+        for i, _ in enumerate(player.get_hand()):
 
             image = self.load_image(frame, right=right)
 
             if right:
-                player_name.set(self.controller.game.pelaajat[2].get_nimi())
+                player_name.set(self.controller.game.players[2].get_name())
                 label = tk.Label(frame, textvariable=player_name, wraplength=1)
                 label.grid(row=0, column=0, sticky="w")
 
@@ -812,7 +812,7 @@ class TableFrame(tk.Frame):
                     image.place(x=35, y=i*15, anchor="nw")
 
             else:
-                player_name.set(self.controller.game.pelaajat[1].get_nimi())
+                player_name.set(self.controller.game.players[1].get_name())
                 label = tk.Label(frame, textvariable=player_name, wraplength=1)
                 label.grid(row=0, column=0, sticky="e")
 
@@ -843,7 +843,7 @@ class DeckFrame(tk.Frame):
 
         self.create_labels()
 
-        if not self.controller.game.nostopakka.on_tyhja():
+        if not self.controller.game.draw_deck.on_tyhja():
             self.set_draw_deck()
 
         self.discard_first_card()
@@ -857,7 +857,7 @@ class DeckFrame(tk.Frame):
 
         # display num of cards left in the draw deck
         num_of_cards = tk.IntVar()
-        num_of_cards.set(self.controller.game.nostopakka.cards_left())
+        num_of_cards.set(self.controller.game.draw_deck.cards_left())
         num_of_cards_label = tk.Label(self, textvariable=num_of_cards)
         num_of_cards_label.grid(row=2, column=0)
 
@@ -866,7 +866,7 @@ class DeckFrame(tk.Frame):
         card_label.grid(row=1, column=0)
 
     def discard_first_card(self):
-        card = self.controller.game.poistopakka.get_viimeinen_kortti()
+        card = self.controller.game.discard_deck.get_last_card()
         card_label = self.parent.load_image(self,
                                              card=card,
                                              discard_deck=True)
@@ -893,7 +893,7 @@ class CardLabel(tk.Label):
 
         # while the player is choosing the wild card color, all other
         # functionalitt is disabled.
-        if binding and not self.controller.game.kysytaan_varia:
+        if binding and not self.controller.game.color_queried:
             self.bind("<Button-1>", self.choose_action)
 
     def choose_action(self, event):
@@ -909,19 +909,19 @@ class CardLabel(tk.Label):
     def pass_turn(self):
         """Player passes.
         """
-        self.controller.game.passaa()
+        self.controller.game.pass_turn()
 
     def draw_card(self):
         """Player attempts to draw a card.
         """
-        self.controller.game.nosta_kortti()
+        self.controller.game.draw_card()
 
     def play_card(self):
         """Player attempts to play a card.
         """
         index = self.winfo_name()[-1:]
         index = int(index) - 1 if index != "l" else 0
-        self.controller.game.pelaa_kortti(index)
+        self.controller.game.play_card(index)
 
 
 class QueryColorFrame(tk.Frame):
@@ -943,8 +943,8 @@ class QueryColorFrame(tk.Frame):
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
 
-        if (self.controller.game.kysytaan_varia and
-            self.controller.game.vuorossa == 0):
+        if (self.controller.game.color_queried and
+            self.controller.game.in_turn == 0):
             self.create_title()
             self.create_buttons()
 
@@ -966,7 +966,7 @@ class QueryColorFrame(tk.Frame):
                                       "column": 1,
                                       "sticky": "nsew"}}
     
-        for i, color in enumerate(self.controller.game.nostopakka.get_varit()):
+        for i, color in enumerate(self.controller.game.draw_deck.get_varit()):
     
             # translate command colors to actual colors supported by tcl
             button_color = {"red": "red",
@@ -986,7 +986,7 @@ class QueryColorFrame(tk.Frame):
     def process_color(self, color):
         """Send the chosen wild card color to the game logic.
         """
-        self.controller.game.vastaanota_vari(color)
+        self.controller.game.receive_color(color)
         self.parent.parent.update_stat_frame()
         self.parent.parent.update_table_frame()
         self.parent.parent.end_turn()
