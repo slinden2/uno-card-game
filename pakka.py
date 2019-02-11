@@ -1,105 +1,107 @@
 import random
 from config import Config
-from kortti import Kortti
+from kortti import Card
 
 
-class Pakka:
-    """UNO-korttipakan sisällään pitävä luokka.
-    Pakassa on 108 korttia:
-        -19 punaista korttia 0-9
-        -19 keltaista korttia 0-9
-        -19 vihreää korttia 0-9
-        -19 sinistä korttia 0-9
-        -8 ohituskorttia
-        -8 suunnanvaihtokorttia
-        -8 nosta kaksi -korttia
-        -4 jokerikorttia
-        -4 jokeri- + nosta neljä -korttia
+class Deck:
+    """Contains an UNO card deck.
+
+    A deck contains:
+        -19 red cards 0-9
+        -19 yellow cards 0-9
+        -19 green cards 0-9
+        -19 blue cards 0-9
+        -8 skip cards
+        -8 reverse cards
+        -8 draw 2 cards
+        -4 wild cards
+        -4 wild card/draw 4 cards
     """
 
     def __init__(self):
-        self.korttipakka = []
-        self.varit = Config.CARD_COLORS
-        self.luotu = False
-        self.toimintakortit = {10: "ohitus",
-                               11: "suunnanvaihto",
-                               12: "nosta 2",
-                               13: "jokeri",
-                               14: "jokeri + 4"}
+        self.deck = []
+        self.colors = Config.CARD_COLORS
+        self.created = False
+        self.action_cards = {10: "skip",
+                               11: "reverse",
+                               12: "draw 2",
+                               13: "wild card",
+                               14: "wild card + 4"}
 
     def create_deck(self):
-        if self.luotu:
-            self.korttipakka[:] = []
-            self.luotu = False
-        self._luo_nollakortit()
-        self._luo_varikortit()
-        self._luo_varikortit()
-        self._luo_erikoiskortit()
-        self.luotu = True
+        if self.created:
+            self.deck[:] = []
+            self.created = False
+        self._create_zero_cards()
+        self._create_color_cards()
+        self._create_color_cards()
+        self._create_wild_cards()
+        self.created = True
 
-    def _luo_nollakortit(self):
-        for vari in self.varit:
-            self.korttipakka.append(Kortti(0, vari, 0))
+    def _create_zero_cards(self):
+        for color in self.colors:
+            self.deck.append(Card(0, color, 0))
 
-    def _luo_varikortit(self):
-        """Luo kortit 0-9 neljälle UNO-pelin värille.
-        Tämän lisäksi metodi luo jokaiselle värille kolme toimintakorttia:
-            -1 ohituskortti (arvo 10)
-            -1 suunnanvaihtokortti (arvo 11)
-            -1 nosta 2 -kortti (arvo 12)
+    def _create_color_cards(self):
+        """Create cards 0-9 for all 4 colors of the game.
+
+        The method creates also 3 action cards per color.
+            -1 skip card (10)
+            -1 reverse card (11)
+            -1 draw 2 card (12)
         """
-        for vari in self.varit:
+        for color in self.colors:
             for i in range(1, 13):
                 if i < 10:
-                    self.korttipakka.append(
-                        Kortti(i, vari, i, self.toimintakortit.get(i, None)))
+                    self.deck.append(
+                        Card(i, color, i, self.action_cards.get(i, None)))
                 else:
-                    self.korttipakka.append(
-                        Kortti(i, vari, 20, self.toimintakortit.get(i, None)))
+                    self.deck.append(
+                        Card(i, color, 20, self.action_cards.get(i, None)))
 
-    def _luo_erikoiskortit(self):
-        """Luo kahdeksan toimintakorttia:
-            -4 jokeria (värinvaihtokortti, arvo 13)
-            -4 jokeri + nosta 4 -korttia (pitää sisällään värinvaihdon, arvo 14)
+    def _create_wild_cards(self):
+        """Create 8 wild cards:
+            -4 wild cards (13)
+            -4 wild card / draw 4 cards (14)
         """
         for i in range(13, 15):
             for _ in range(0, 4):
-                self.korttipakka.append(
-                    Kortti(i, Config.SPECIAL_COLOR, 50, self.toimintakortit.get(i, None)))
+                self.deck.append(
+                    Card(i, Config.SPECIAL_COLOR, 50, self.action_cards.get(i, None)))
 
     def shuffle(self):
-        random.shuffle(self.korttipakka)
+        random.shuffle(self.deck)
 
-    def get_pakka(self):
-        return self.korttipakka
+    def get_deck(self):
+        return self.deck
 
-    def get_varit(self):
-        return self.varit
+    def get_colors(self):
+        return self.colors
 
     def deal_card(self):
-        if len(self.korttipakka) >= 1:
-            return self.korttipakka.pop(0)
+        if not self.is_empty():
+            return self.deck.pop(0)
         else:
-            print("Pakassa ei ole kortteja!")
+            print("The deck is empty.")
             return False
 
-    def add_card(self, kortti):
-        self.korttipakka.append(kortti)
+    def add_card(self, card):
+        self.deck.append(card)
 
     def turn_deck(self):
-        self.korttipakka = self.korttipakka[::-1]
+        self.deck = self.deck[::-1]
 
     def get_last_card(self):
-        return self.korttipakka[-1]
+        return self.deck[-1]
 
-    def on_tyhja(self):
+    def is_empty(self):
         return len(self) == 0
 
     def cards_left(self):
         return len(self)
 
     def __len__(self):
-        return len(self.korttipakka)
+        return len(self.deck)
 
     def __str__(self):
-        return f"{[str(kortti) for kortti in self.korttipakka]}"
+        return f"{[str(card) for card in self.deck]}"

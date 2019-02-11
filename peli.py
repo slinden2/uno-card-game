@@ -1,7 +1,7 @@
 import random
 from config import Config
-from pakka import Pakka
-from pelaaja import Pelaaja
+from pakka import Deck
+from pelaaja import Player
 from feed import Feed
 
 
@@ -11,8 +11,8 @@ class Game:
         """This class contais the logic of the UNO card game.
         """
         self.players = []
-        self.draw_deck = Pakka()
-        self.discard_deck = Pakka()
+        self.draw_deck = Deck()
+        self.discard_deck = Deck()
         self.colors = Config.CARD_COLORS
         self.wc_color = Config.SPECIAL_COLOR # wc = wildcard
         self.feed = Feed(50)
@@ -43,7 +43,7 @@ class Game:
         :param name: Name of the player
         :param is_computer: Define if a player is controlled
                             by the player or automatically."""
-        self.players.append(Pelaaja(name, is_computer))
+        self.players.append(Player(name, is_computer))
 
     def start_first_game(self):
         self.player_qty = len(self.players)
@@ -326,7 +326,7 @@ class Game:
             if self.wc_color != Config.SPECIAL_COLOR:
                 self.wc_color = Config.SPECIAL_COLOR
 
-            if card.toiminta:
+            if card.action:
                 self._process_action_card(card)
 
             player.play_turn(card)
@@ -401,7 +401,7 @@ class Game:
         winner = self._get_player_in_turn()
         for player in self.players:
             for card in player.get_hand():
-                winner.lisaa_pisteita(card.get_points())
+                winner.add_points(card.get_points())
 
     def _check_winning_points(self):
         """Check if one of the players has reached the point

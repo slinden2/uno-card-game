@@ -1,75 +1,73 @@
 from config import Config
 
 
-class Kortti:
-    """UNO-kortin luokka.
+class Card:
+    """UNO card
     """
 
-    def __init__(self, arvo, vari, pisteet, toiminta=None):
-        self.arvo = arvo
-        self.vari = vari
-        self.toiminta = toiminta
-        self.pisteet = pisteet
+    def __init__(self, value, color, points, action=None):
+        self.value = value
+        self.color = color
+        self.action = action
+        self.points = points
 
     def get_points(self):
-        return self.pisteet
+        return self.points
 
     def get_value(self):
-        return self.arvo
+        return self.value
 
     def get_image(self):
         path = "cards/"
         ext = ".png"
         special = "spc"
-        if self.arvo <= 12:
-            return f"{path}{str(self.arvo).zfill(2)}_{self.vari}{ext}"
+        if self.value <= 12:
+            return f"{path}{str(self.value).zfill(2)}_{self.color}{ext}"
         else:
-            return f"{path}{str(self.arvo).zfill(2)}_{special}{ext}"
+            return f"{path}{str(self.value).zfill(2)}_{special}{ext}"
 
     def compare_color(self, other):
         """Returns True if the color of the cards is the same.
         """
-        return self.vari == other.vari
+        return self.color == other.color
 
     def compare_value(self, other):
         """Returns True if the value of the cards is the same.
         """
-        return self.arvo == other.arvo
+        return self.value == other.value
 
     def compare_to_wildcard(self, wildcard_color):
         """Returns True if the color of the card corresponds
         to the wildcard color."""
-        return self.vari == wildcard_color
+        return self.color == wildcard_color
 
     def is_wildcard(self):
         """Returns True if the 'color' of the card is wildcard.
         """
-        return self.vari == Config.SPECIAL_COLOR
-
-#   # TODO tee tarkastusmetodit korttiluokkaan
-# if (pelattu_kortti.vari == verrattava_kortti.vari or
-#     pelattu_kortti.arvo == verrattava_kortti.arvo or
-#     pelattu_kortti.vari == Config.SPECIAL_COLOR or
-#         pelattu_kortti.vari == self.jokerivari):
-#     return True
+        return self.color == Config.SPECIAL_COLOR
 
     def __str__(self):
-        return f"{self.arvo} {self.vari}{' ' + self.toiminta if self.toiminta else ''}"
+        return f"{self.value} {self.color}{' ' + self.action if self.action else ''}"
 
     def __repr__(self):
-        return f"Kortti({self.arvo}, {self.vari}, {self.pisteet}, {self.toiminta})"
+        return f"Card({self.value}, {self.color}, {self.points}, {self.action})"
 
     def __lt__(self, other):
-        if self._quantify_color(self.vari) < self._quantify_color(other.vari):
+        if self._quantify_color(self.color) < self._quantify_color(other.color):
             return True
-        if self.arvo < other.arvo and \
-            (self._quantify_color(self.vari) ==
-             self._quantify_color(other.vari)):
+
+        if self.value < other.value and \
+            (self._quantify_color(self.color) ==
+             self._quantify_color(other.color)):
             return True
+
         return False
 
     @staticmethod
     def _quantify_color(color):
+        """Gives a number for the card colors so that they
+        can be sorted.
+        """
         color_dict = {k: v for v, k in enumerate(Config.CARD_COLORS)}
         if color == Config.SPECIAL_COLOR:
             return len(color_dict)

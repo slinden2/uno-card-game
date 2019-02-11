@@ -1,44 +1,48 @@
-class Pelaaja:
-    """Luokka UNO-korttipelin pelaajien hallintaan.
-    Luokan avulla voidaan pitää muistissa pelaajan nimi,
-    pisteet, voitot ja kädessä olevat kortit.
+class Player:
+    """Class for handling players of UNO Card Game.
+    The class allows to retain name, points, wins
+    and the current hand of the player in memory.
 
-    Kädessa olevien korttien on tarkoitus olla Kortti-luokan olioita.
+    The cards in the hand are Card objects.
 
-    :param nimi: Pelaajan nimi
+    :param name: Players name
+    :param computer: True if the player is not controlled
+                     by a human player.
     """
 
-    def __init__(self, nimi, tietokone=False):
-        self.nimi = nimi
-        self.tietokone = tietokone
-        self.pisteet = 0
-        self.voitot = 0
+    def __init__(self, name, computer=False):
+        self.name = name
+        self.computer = computer
+        self.points = 0
+        self.win_num = 0
         self.hand = []
 
-    def draw_card(self, kortti):
-        """Lisaa kortin self.hand -listaan
-        :param kortti: :class:`Kortti`
+    def draw_card(self, card):
+        """Adds a card to self.hand list
+        :param card: :class:`Card`
         """
-        if kortti:
-            self.hand.append(kortti)
+        if card:
+            self.hand.append(card)
 
-    def hae_kortti(self, arvo, vari):
-        for kortti in self.hand:
-            if kortti.arvo == arvo and kortti.vari == vari:
-                return kortti
-        print("Kädessä ei ole kyseistä korttia.")
+    def search_card(self, value, color):
+        """Search a card in hand based on its value and color.
+        """
+        for card in self.hand:
+            if card.get_value() == value and card.get_color() == color:
+                return card
+        print(f"{self.name} doesn't have that card.")
         return -1
 
-    def play_turn(self, kortti):
+    def play_turn(self, card):
         """Poistaa kortin kädestä.
-        :param kortti: :class:`Kortti`
+        :param card: :class:`Card`
         """
-        if kortti != -1:
-            self.hand.remove(kortti)
-            return kortti
+        if card != -1:
+            self.hand.remove(card)
+            return card
 
     def get_name(self):
-        return self.nimi
+        return self.name
 
     def get_last_card(self):
         return self.hand[-1]
@@ -46,7 +50,7 @@ class Pelaaja:
     def get_hand(self):
         return self.hand
 
-    def tulosta_kasi(self):
+    def print_hand(self):
         for i, kortti in enumerate(self.get_hand(), start=1):
             print(f"    {i:>2} - {kortti}")
 
@@ -54,21 +58,21 @@ class Pelaaja:
         self.hand[:] = []
 
     def wins(self):
-        self.voitot += 1
+        self.win_num += 1
 
-    def lisaa_pisteita(self, pisteet):
-        self.pisteet += pisteet
+    def add_points(self, points):
+        self.points += points
 
     def get_points(self):
-        return self.pisteet
+        return self.points
 
     def is_computer(self):
-        return self.tietokone
+        return self.computer
 
     def resetoi(self):
         self.destroy_hand()
-        self.pisteet = 0
-        self.voitot = 0
+        self.points = 0
+        self.win_num = 0
 
     def __str__(self):
-        return f"Nimi: {self.nimi} - Käsi: {[str(kortti) for kortti in self.hand]}"
+        return f"Name: {self.name} - Hand: {[str(kortti) for card in self.hand]}"

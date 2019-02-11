@@ -3,6 +3,10 @@ class Config:
     # UI
     ICON = "cards/icon.ico"
     LOGO = "cards/logo.png"
+    BACK_OF_CARD_NORMAL = "cards/back.png"
+    BACK_OF_CARD_LEFT = "cards/back_vert_left.png"
+    BACK_OF_CARD_RIGHT = "cards/back_vert_right.png"
+    BACK_OF_CARD_TOP = "cards/back_horiz_top.png"
     TITLE_FONT = {"family": "Helvetica",
                   "size": 50,
                   "weight": "bold"}
@@ -40,10 +44,5 @@ class Config:
     # GAME
     CARD_COLORS = ["red", "yel", "gre", "blu"]
     SPECIAL_COLOR = 'spc'
-    TAUSTAVARI = 'green'
     PLAYER_QTY = 2
     WINNING_POINTS = 500
-    KORTIN_TAKA_NORMAALI = "cards/back.png"
-    KORTIN_TAKA_VASEN = "cards/back_vert_left.png"
-    KORTIN_TAKA_OIKEA = "cards/back_vert_right.png"
-    KORTIN_TAKA_YLA = "cards/back_horiz_top.png"

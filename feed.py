@@ -2,6 +2,11 @@ import datetime
 
 
 class Feed:
+    """Class to display what happens in the game
+    in feed format.
+
+    :param msg_qty: The number of messages saved.
+    """
 
     def __init__(self, msg_qty):
         self.messages = []

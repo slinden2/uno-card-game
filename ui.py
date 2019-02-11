@@ -419,7 +419,7 @@ class PlayerPage(tk.Frame):
         for label, player_entry in players:
             if len(player_entry.get()) < 1:
                 if label.cget("text") == "Player":
-                    player_entry.insert(0, "Pelaaja")
+                    player_entry.insert(0, "Player")
                 else:
                     player_entry.insert(0, f"Computer {count}")
                     count += 1
@@ -697,15 +697,15 @@ class TableFrame(tk.Frame):
         # when a clickable card is clicked
         name = ""
         if draw_deck:
-            image = tk.PhotoImage(file=Config.KORTIN_TAKA_NORMAALI)
+            image = tk.PhotoImage(file=Config.BACK_OF_CARD_NORMAL)
             binding = True
             name = "draw_deck"
         if top:
-            image = tk.PhotoImage(file=Config.KORTIN_TAKA_YLA)
+            image = tk.PhotoImage(file=Config.BACK_OF_CARD_TOP)
         elif right and not top:
-            image = tk.PhotoImage(file=Config.KORTIN_TAKA_OIKEA)
+            image = tk.PhotoImage(file=Config.BACK_OF_CARD_RIGHT)
         elif not right and not top and not draw_deck:
-            image = tk.PhotoImage(file=Config.KORTIN_TAKA_VASEN)
+            image = tk.PhotoImage(file=Config.BACK_OF_CARD_LEFT)
         if card:
             image = tk.PhotoImage(file=card.get_image())
             binding = True
@@ -843,7 +843,7 @@ class DeckFrame(tk.Frame):
 
         self.create_labels()
 
-        if not self.controller.game.draw_deck.on_tyhja():
+        if not self.controller.game.draw_deck.is_empty():
             self.set_draw_deck()
 
         self.discard_first_card()
@@ -966,7 +966,7 @@ class QueryColorFrame(tk.Frame):
                                       "column": 1,
                                       "sticky": "nsew"}}
     
-        for i, color in enumerate(self.controller.game.draw_deck.get_varit()):
+        for i, color in enumerate(self.controller.game.draw_deck.get_colors()):
     
             # translate command colors to actual colors supported by tcl
             button_color = {"red": "red",
