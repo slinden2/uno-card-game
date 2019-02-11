@@ -1,9 +1,9 @@
-from ui import Kayttoliittyma
+from ui import UnoCardGame
 
 
 def main():
-    ui = Kayttoliittyma()
-    ui.kaynnista()
+    app = UnoCardGame()
+    app.mainloop()
 
 
 if __name__ == "__main__":
