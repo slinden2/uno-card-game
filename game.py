@@ -1,7 +1,7 @@
 import random
 from config import Config
-from pakka import Deck
-from pelaaja import Player
+from deck import Deck
+from player import Player
 from feed import Feed
 
 

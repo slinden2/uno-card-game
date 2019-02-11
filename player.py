@@ -34,7 +34,7 @@ class Player:
         return -1
 
     def play_turn(self, card):
-        """Poistaa kortin kädestä.
+        """Removes a card from hand.
         :param card: :class:`Card`
         """
         if card != -1:

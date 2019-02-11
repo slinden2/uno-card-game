@@ -2,7 +2,7 @@ import tkinter as tk
 import tkinter.font as tkFont
 import webbrowser
 from tkinter import ttk
-from peli import Game
+from game import Game
 from config import Config
 
 

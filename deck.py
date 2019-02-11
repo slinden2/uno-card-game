@@ -1,6 +1,6 @@
 import random
 from config import Config
-from kortti import Card
+from card import Card
 
 
 class Deck:
