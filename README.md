@@ -2,7 +2,7 @@
 
 This is my UNO Card Game repository. A single player game, that can be played with 1-3 computer players. 
 
-![Main Screen](cards/main_screen.PNG) ![Game Screen](cards/game_screen.PNG)
+![Main Screen](cards/main_screen.png) ![Game Screen](cards/game_screen.png)
 
 
 ## Getting Started
