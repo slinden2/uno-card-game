@@ -14,7 +14,7 @@ class Game:
         self.draw_deck = Deck()
         self.discard_deck = Deck()
         self.colors = Config.CARD_COLORS
-        self.wc_color = Config.SPECIAL_COLOR # wc = wildcard
+        self.wc_color = Config.SPECIAL_COLOR  # wc = wildcard
         self.feed = Feed(50)
 
         self._init_game_variables()
@@ -32,14 +32,14 @@ class Game:
         self.turn_played_computer = False
         self.round_played = False
         self.game_played = False
-        
+
         # True if the next players turn is going to be passed.
         self.passing = False
         self.color_queried = False
 
     def create_player(self, name, is_computer):
         """Create a new player to the game.
-        
+
         :param name: Name of the player
         :param is_computer: Define if a player is controlled
                             by the player or automatically."""
@@ -138,6 +138,7 @@ class Game:
         while True:
             starting_card = self.draw_deck.deal_card()
 
+            # check that the card isn't an action card
             if starting_card.get_value() > 9:
                 self.draw_deck.add_card(starting_card)
                 continue
@@ -311,8 +312,8 @@ class Game:
         if self.card_drawn or len(self.draw_deck) == 0:
             self.feed.add_msg(f"{player.get_name()} passes.")
             self.turn_played = True
-            
-        if player.is_computer() and (self.card_drawn_computer or 
+
+        if player.is_computer() and (self.card_drawn_computer or
                                      len(self.draw_deck) == 0):
             self.turn_played_computer = True
 

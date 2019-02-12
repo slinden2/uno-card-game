@@ -1,6 +1,7 @@
 import tkinter as tk
 import tkinter.font as tkFont
 import webbrowser
+import re
 from tkinter import ttk
 from game import Game
 from config import Config
@@ -28,15 +29,16 @@ class UnoCardGame(tk.Tk):
         self.game = Game()
         self.game_on = False
 
+        # controller dict
         self.frames = {}
+
         self.create_frames()
         self.show_frame(MainScreen)
 
     def create_frames(self):
         """Create frames and a controller dict.
         """
-        self.frames = {}
-        for F in (MainScreen, PlayerPage, Asetusframe, GamePage, HelpPage):
+        for F in (MainScreen, PlayerPage, SettingPage, GamePage, HelpPage):
             frame = F(self.main_window, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -99,7 +101,7 @@ class MainScreen(tk.Frame):
     def create_buttons(self):
         # set up dict for button creation
         button_properties = {"Play": lambda: self.controller.show_frame(PlayerPage),
-                             "Settings": lambda: self.controller.show_frame(Asetusframe),
+                             "Settings": lambda: self.controller.show_frame(SettingPage),
                              "Help": lambda: self.controller.show_frame(HelpPage),
                              "Quit": self.controller.quit}
 
@@ -241,7 +243,7 @@ class HelpTable(tk.Frame):
                 message.pack(side="left")
 
 
-class Asetusframe(tk.Frame):
+class SettingPage(tk.Frame):
 
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -398,16 +400,9 @@ class PlayerPage(tk.Frame):
         The names can have only small or capital letters or numbers.
         Max length of the name is 15 chars.
         """
-        valid = "abcdefghijklmnopqrstuvwxyzåäö"
-        valid = valid + valid.upper() + "0123456789 "
-
-        if len(P) > 15:
-            return False
-
-        for l in P:
-            if l not in valid:
-                return False
-        return True
+        pattern = re.compile(r"(^[a-zA-Z]{1,15}$|^Computer\s\d$)")
+        match = pattern.match(P) 
+        return True if match else False
 
     def check_empty_entries(self, players):
         """If some of the entry widgets are left empty,
@@ -704,7 +699,7 @@ class TableFrame(tk.Frame):
             image = tk.PhotoImage(file=Config.BACK_OF_CARD_TOP)
         elif right and not top:
             image = tk.PhotoImage(file=Config.BACK_OF_CARD_RIGHT)
-        elif not right and not top and not draw_deck:
+        elif not any((right, top, draw_deck)):
             image = tk.PhotoImage(file=Config.BACK_OF_CARD_LEFT)
         if card:
             image = tk.PhotoImage(file=card.get_image())
@@ -721,17 +716,17 @@ class TableFrame(tk.Frame):
     def set_starting_hands(self):
         """Create and position starting hands for all players.
         """
+        mapper = {
+            0: lambda frame, player: self.set_horizontal_hand(frame, player),
+            1: lambda frame, player: self.set_vertical_hand(frame, player),
+            2: lambda frame, player: self.set_vertical_hand(frame, player, right=True),
+            3: lambda frame, player: self.set_horizontal_hand(frame, player, top=True)
+        }
+
         self.create_card_frames()
         for i, (player, frame) in enumerate(zip(self.controller.game.players,
                                                  self.card_frames)):
-            if i == 0:
-                self.set_horizontal_hand(frame, player)
-            elif i == 1:
-                self.set_vertical_hand(frame, player)
-            elif i == 2:
-                self.set_vertical_hand(frame, player, right=True)
-            elif i == 3:
-                self.set_horizontal_hand(frame, player, top=True)
+            mapper[i](frame, player)
 
     def create_card_frames(self):
         """Create empty frames to hold the hands of the players.

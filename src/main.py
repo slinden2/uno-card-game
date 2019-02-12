@@ -1,4 +1,4 @@
-from ui import UnoCardGame
+from ui.ui import UnoCardGame
 
 
 def main():
