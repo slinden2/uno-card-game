@@ -1,8 +1,8 @@
-﻿__pycache__/
+﻿
+__pycache__/
 .vscode/
 uno.py
 testfile.py
-cards/UNO*
-cards/scrap
+src/cards/UNO*
+src/cards/scrap
 
-__pycache__/

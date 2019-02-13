@@ -29,10 +29,14 @@ class Config:
     BULLET_2 = "• play a Wild card, or a playable Wild Draw Four card (see restriction below)"
     BULLET_3 = "• draw the top card from the deck, then play it if possible"
     HELP_TABLE = [("Card", "Effect when played from hand", "Effect as first card"),
-                  ("Skip", "Next player in sequence misses a turn", "Player to dealer's left misses a turn"),
-                  ("Reverse", "Order of play switches directions (clockwise to counterclockwise, or vice versa)	", "Dealer plays first; play proceeds counterclockwise"),
-                  ("Draw Two (+2)", "Next player in sequence draws two cards and misses a turn", "Player to dealer's left draws two cards and misses a turn"),
-                  ("Wild", "Player declares the next color to be matched (may be used on any turn even if the player has matching color)", "Player to dealer's left declares the first color to be matched and plays a card in it"),
+                  ("Skip", "Next player in sequence misses a turn",
+                   "Player to dealer's left misses a turn"),
+                  ("Reverse", "Order of play switches directions (clockwise to counterclockwise, or vice versa)	",
+                   "Dealer plays first; play proceeds counterclockwise"),
+                  ("Draw Two (+2)", "Next player in sequence draws two cards and misses a turn",
+                   "Player to dealer's left draws two cards and misses a turn"),
+                  ("Wild", "Player declares the next color to be matched (may be used on any turn even if the player has matching color)",
+                   "Player to dealer's left declares the first color to be matched and plays a card in it"),
                   ("Wild Draw Four/Draw Four Wild (+4 and wild)", "Player declares the next color to be matched; next player in sequence draws four cards and misses a turn. May be legally played only if the player has no cards of the current color (see Penalties).", "Return card to the deck, shuffle, flip top card to start discard pile")]
     PARAGRAPH_4 = "Cards are played by laying them face-up on top of the discard pile. Play proceeds clockwise around the table."
     PARAGRAPH_5 = "Action or Wild cards have the following effects:"
@@ -46,3 +50,4 @@ class Config:
     SPECIAL_COLOR = 'spc'
     PLAYER_QTY = 2
     WINNING_POINTS = 500
+    CARD_PATH = "cards/"

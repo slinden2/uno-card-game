@@ -18,7 +18,7 @@ class Card:
         return self.value
 
     def get_image(self):
-        path = "cards/"
+        path = Config.CARD_PATH
         ext = ".png"
         special = "spc"
         if self.value <= 12:

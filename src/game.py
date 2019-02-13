@@ -240,8 +240,8 @@ class Game:
             else:
                 self._pass_turn()
 
-            voittaja = self._end_turn(computer)
-            if voittaja:
+            winner = self._end_turn(computer)
+            if winner:
                 break
 
         self.turn_played_computer = True
@@ -283,6 +283,9 @@ class Game:
         """
         player = self._get_player_in_turn()
         hand = player.get_hand()
+
+        if self.draw_deck.is_empty():
+            return False
 
         for card in hand:
 
@@ -408,10 +411,11 @@ class Game:
         """Check if one of the players has reached the point
         amount needed for a win.
         """
+        print(self.players)
         for player in self.players:
 
             if player.get_points() >= self.winning_points:
                 self.feed.add_msg(f"{player.get_name()} wins the game!")
 
                 return True
-            return False
+        return False
